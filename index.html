@@ -2,676 +2,678 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>军棋大战 - AI对弈</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>双人军棋 · 人机对弈（三档AI）</title>
 <style>
-:root{
-  --bg:#0b110b;--surface:#152015;--board:#2a3a22;
-  --cell:#c8a96e;--cell-dark:#b89858;--cell-camp:#a08848;
-  --hq:#dab870;--mountain:#4a3520;--rail:#8a7450;
-  --blue:#2563eb;--blue-d:#1d4ed8;--blue-l:#60a5fa;
-  --red:#dc2626;--red-d:#b91c1c;--red-l:#f87171;
-  --gold:#d4a853;--gold-d:#b08830;--gold-l:#e8c570;
-  --text:#f0ece4;--text-m:#9a8e7e;--text-d:#5a5040;
-  --line:#6b5b3a;--glow:rgba(212,168,83,.45);
-  --danger:rgba(220,38,38,.35);
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 25% 15%,rgba(20,40,20,.7),transparent 65%),radial-gradient(ellipse at 75% 85%,rgba(20,40,20,.5),transparent 55%),var(--bg);pointer-events:none;z-index:-1}
-
-/* ===== START SCREEN ===== */
-#start{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5rem;padding:2rem;text-align:center}
-#start h1{font-family:'Ma Shan Zheng',cursive;font-size:clamp(2.8rem,8vw,5rem);color:var(--gold);text-shadow:0 4px 20px rgba(212,168,83,.3);letter-spacing:.15em;line-height:1.2}
-#start .sub{font-size:1.05rem;color:var(--text-m);letter-spacing:.35em;font-weight:300}
-.diffs{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
-.diff-btn{padding:1.1rem 2rem;border:2px solid var(--gold-d);background:rgba(212,168,83,.06);color:var(--gold);font-size:1rem;font-family:inherit;cursor:pointer;transition:all .3s;min-width:140px;position:relative;overflow:hidden}
-.diff-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--gold),var(--gold-d));opacity:0;transition:opacity .3s}
-.diff-btn:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(212,168,83,.2)}
-.diff-btn:hover::before{opacity:1}
-.diff-btn:hover span{position:relative;z-index:1}
-.diff-btn span{display:block;position:relative;z-index:1}
-.diff-btn .dn{font-weight:700;font-size:1.3rem;margin-bottom:.2rem}
-.diff-btn:hover .dn,.diff-btn:hover .dd{color:var(--bg)}
-.diff-btn .dd{font-size:.82rem;opacity:.75}
-.rules-btn{background:none;border:1px solid var(--text-d);color:var(--text-m);padding:.6rem 1.5rem;cursor:pointer;font-family:inherit;font-size:.9rem;transition:all .3s}
-.rules-btn:hover{border-color:var(--gold);color:var(--gold)}
-#rules{display:none;max-width:560px;text-align:left;background:var(--surface);border:1px solid var(--text-d);padding:1.5rem 2rem;border-radius:4px;line-height:1.8;font-size:.9rem;color:var(--text-m)}
-#rules h3{color:var(--gold);margin:1rem 0 .4rem;font-size:1rem}
-#rules h3:first-child{margin-top:0}
-#rules .rk{display:inline-block;background:var(--bg);padding:0 .4rem;margin:0 .15rem;border-radius:2px;font-size:.85rem}
-
-/* ===== GAME SCREEN ===== */
-#game{display:none;min-height:100vh;padding:.8rem}
-.g-head{display:flex;justify-content:space-between;align-items:center;padding:.5rem .8rem;margin-bottom:.6rem}
-.turn-box{display:flex;align-items:center;gap:.6rem}
-.turn-dot{width:10px;height:10px;border-radius:50%;background:var(--blue);box-shadow:0 0 8px var(--blue);animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.g-head .turn-text{font-weight:700;font-size:1.05rem}
-.hdr-r{display:flex;align-items:center;gap:.8rem}
-.diff-tag{font-size:.8rem;padding:.25rem .7rem;border:1px solid var(--gold-d);color:var(--gold);border-radius:2px}
-.btn-nw{background:none;border:1px solid var(--text-d);color:var(--text-m);padding:.4rem 1rem;cursor:pointer;font-family:inherit;font-size:.85rem;transition:all .2s}
-.btn-nw:hover{border-color:var(--gold);color:var(--gold)}
-
-.g-body{display:flex;gap:.8rem;justify-content:center;align-items:flex-start;flex-wrap:wrap}
-.side-p{width:130px;flex-shrink:0}
-.side-p .sp-title{font-size:.85rem;color:var(--text-m);text-align:center;padding:.4rem;border-bottom:1px solid var(--text-d);margin-bottom:.5rem;letter-spacing:.1em}
-.dead-list{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
-.dead-p{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:.7rem;font-weight:700;color:#fff}
-.dead-p.blue{background:rgba(37,99,235,.35)}
-.dead-p.red{background:rgba(220,38,38,.35)}
-
-/* ===== BOARD ===== */
-.board-wrap{position:relative;flex-shrink:0}
-#board{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(12,1fr);gap:1px;background:var(--line);border:2px solid var(--mountain);border-radius:3px;overflow:hidden;width:calc(5*var(--cs));height:calc(12*var(--cs));--cs:58px}
-.cell{background:var(--cell);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .15s}
-.cell:hover{background:var(--cell-dark)}
-.cell.camp{background:var(--cell-camp)}
-.cell.camp::after{content:'';position:absolute;width:14px;height:14px;border:1.5px solid rgba(0,0,0,.15);transform:rotate(45deg);pointer-events:none;border-radius:2px}
-.cell.hq{background:var(--hq)}
-.cell.hq::before{content:'HQ';position:absolute;top:2px;right:3px;font-size:7px;color:rgba(0,0,0,.2);font-weight:700;letter-spacing:.05em}
-.cell.hl{box-shadow:inset 0 0 0 3px var(--glow)}
-.cell.atk{box-shadow:inset 0 0 0 3px var(--danger)}
-.cell .sel-ring{position:absolute;inset:0;border:3px solid var(--gold);border-radius:2px;animation:selPulse 1s infinite;pointer-events:none}
-@keyframes selPulse{0%,100%{opacity:1}50%{opacity:.5}}
-.cell[data-r="5"]{box-shadow:inset 0 -2px 0 var(--mountain)}
-.cell[data-r="6"]{box-shadow:inset 0 2px 0 var(--mountain)}
-.mt-label{position:absolute;left:50%;top:calc(5*(var(--cs)+1px) - 10px);transform:translateX(-50%);background:var(--mountain);color:var(--gold);padding:2px 16px;font-size:11px;letter-spacing:.6em;z-index:10;pointer-events:none;white-space:nowrap;font-weight:500}
-
-/* ===== PIECES ===== */
-.pc{width:46px;height:46px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;pointer-events:none;transition:transform .15s;position:relative;text-shadow:0 1px 2px rgba(0,0,0,.3);line-height:1.1}
-.pc.blue{background:linear-gradient(145deg,var(--blue-l),var(--blue-d));box-shadow:0 2px 6px rgba(37,99,235,.4)}
-.pc.red{background:linear-gradient(145deg,var(--red-l),var(--red-d));box-shadow:0 2px 6px rgba(220,38,38,.4)}
-.pc.hidden-pc{font-size:18px;letter-spacing:0}
-.pc .pc-rank{position:absolute;bottom:1px;right:2px;font-size:7px;opacity:.5}
-.pc.revealed{animation:reveal .4s ease}
-@keyframes reveal{0%{transform:scale(.7) rotateY(90deg)}100%{transform:scale(1) rotateY(0)}}
-.pc.fight{animation:combat .5s ease}
-@keyframes combat{0%{transform:scale(1)}25%{transform:scale(1.25)}50%{transform:scale(.9)}100%{transform:scale(1)}}
-
-/* ===== LOG ===== */
-.g-log{max-width:660px;margin:.8rem auto 0;background:var(--surface);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:.6rem 1rem;max-height:140px;overflow-y:auto}
-.g-log::-webkit-scrollbar{width:4px}
-.g-log::-webkit-scrollbar-thumb{background:var(--text-d);border-radius:2px}
-.log-t{font-size:.8rem;color:var(--text-m);margin-bottom:.3rem;letter-spacing:.1em;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:.3rem}
-.log-e{font-size:.82rem;padding:.15rem 0;color:var(--text-m);border-bottom:1px solid rgba(255,255,255,.03)}
-.log-e .win{color:#4ade80}.log-e .lose{color:var(--red-l)}.log-e .draw{color:var(--gold)}
-.log-e .mv{color:var(--text)}
-
-/* ===== GAME OVER ===== */
-.go-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem}
-.go-box{text-align:center;animation:goIn .5s ease}
-@keyframes goIn{0%{opacity:0;transform:translateY(30px)}100%{opacity:1;transform:translateY(0)}}
-.go-box h2{font-family:'Ma Shan Zheng',cursive;font-size:2.5rem;margin-bottom:.5rem}
-.go-box p{color:var(--text-m);margin-bottom:1.5rem}
-.go-box .icon{font-size:4rem;margin-bottom:.5rem;display:block}
-.btn-go{padding:.8rem 2.5rem;background:var(--gold);color:var(--bg);border:none;font-size:1.1rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .3s}
-.btn-go:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(212,168,83,.3)}
-
-/* ===== RESPONSIVE ===== */
-@media(max-width:600px){
-  #board{--cs:48px}
-  .pc{width:38px;height:38px;font-size:12px}
-  .pc.hidden-pc{font-size:15px}
-  .side-p{width:100px}
-  .dead-p{width:30px;height:30px;font-size:.6rem}
-  .g-body{gap:.4rem}
-}
-@media(max-width:400px){
-  #board{--cs:42px}
-  .pc{width:34px;height:34px;font-size:11px}
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:#1f2630;color:#e8ecf1;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+header{width:100%;padding:10px 16px;background:#171d26;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+header h1{font-size:18px;color:#ffd166}
+header .ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,button{background:#2e3b4e;color:#fff;border:1px solid #46586f;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+button:hover{background:#3b4d66}
+button.primary{background:#c0392b;border-color:#e74c3c}
+button.primary:hover{background:#e74c3c}
+main{display:flex;gap:14px;padding:14px;flex-wrap:wrap;justify-content:center;max-width:960px;width:100%}
+#boardWrap{flex:1 1 420px;max-width:580px;background:#f4ead2;border-radius:10px;padding:6px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+svg{width:100%;height:auto;display:block;user-select:none;-webkit-tap-highlight-color:transparent}
+#panel{flex:0 1 300px;min-width:270px;display:flex;flex-direction:column;gap:10px}
+.card{background:#262f3d;border:1px solid #37455a;border-radius:10px;padding:10px 12px;font-size:13px}
+.card h3{font-size:14px;color:#ffd166;margin-bottom:6px}
+#status{font-size:15px;font-weight:600;color:#7ec8e3;min-height:22px}
+#log{max-height:200px;overflow-y:auto;font-size:12px;line-height:1.7;color:#c9d6e3}
+#log div{border-bottom:1px dashed #37455a;padding:1px 0}
+.caps{display:flex;flex-wrap:wrap;gap:4px;min-height:26px}
+.cap{background:#3b4d66;border-radius:4px;padding:2px 6px;font-size:12px}
+.cap.top{background:#2e5f8a}.cap.bottom{background:#8a3b3b}
+details{font-size:12.5px;line-height:1.8;color:#aab8c8}
+summary{cursor:pointer;color:#ffd166;font-size:13px;margin-bottom:4px}
+#toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:#c0392b;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:60}
+#modalBg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50}
+#modal{background:#262f3d;border:1px solid #46586f;border-radius:12px;padding:26px 34px;text-align:center;max-width:340px}
+#modal h2{font-size:22px;margin-bottom:8px}
+#modal p{color:#aab8c8;font-size:13px;margin-bottom:16px}
+footer{font-size:11px;color:#6b7a8d;padding:8px;text-align:center}
+@media(max-width:760px){main{flex-direction:column;align-items:center}#panel{width:100%;max-width:580px}}
 </style>
 </head>
 <body>
-
-<!-- ===== START SCREEN ===== -->
-<div id="start">
-  <h1>军棋大战</h1>
-  <p class="sub">挑战AI指挥官 · 经典策略对弈</p>
-  <div class="diffs">
-    <button class="diff-btn" onclick="startGame(1)"><span class="dn">新兵</span><span class="dd">适合新手入门</span></button>
-    <button class="diff-btn" onclick="startGame(2)"><span class="dn">老兵</span><span class="dd">正面对决</span></button>
-    <button class="diff-btn" onclick="startGame(3)"><span class="dn">将军</span><span class="dd">极限挑战</span></button>
+<header>
+  <h1>♟️ 双人军棋 · 人机对弈</h1>
+  <div class="ctrl">
+    <label>AI难度：
+      <select id="diff">
+        <option value="easy">简单</option>
+        <option value="medium" selected>中等</option>
+        <option value="hard">困难</option>
+      </select>
+    </label>
+    <button id="btnNew" class="primary">新对局</button>
+    <button id="btnRandom">🎲 随机布阵</button>
+    <button id="btnDefault">⭐ 推荐阵型</button>
+    <button id="btnStart" class="primary">▶ 开始对局</button>
+    <button id="btnResign">认输</button>
+    <button id="btnSnd">🔊 音效</button>
   </div>
-  <button class="rules-btn" onclick="toggleRules()">查看游戏规则</button>
-  <div id="rules">
-    <h3>游戏目标</h3>夺取对方<span class="rk">军旗</span>，或消灭对方所有可移动棋子。
-    <h3>棋子大小</h3><span class="rk">司令</span>&gt;<span class="rk">军长</span>&gt;<span class="rk">师长</span>&gt;<span class="rk">旅长</span>&gt;<span class="rk">团长</span>&gt;<span class="rk">营长</span>&gt;<span class="rk">连长</span>&gt;<span class="rk">排长</span>&gt;<span class="rk">工兵</span>
-    <h3>特殊规则</h3>
-    <span class="rk">炸弹</span>与任何棋子交战，双方同归于尽。<br>
-    <span class="rk">地雷</span>不可移动，能炸毁进攻方（<span class="rk">工兵</span>除外，工兵可排雷）。<br>
-    <span class="rk">军旗</span>不可移动，被夺取即失败。<br>
-    <span class="rk">行营</span>（带菱形标记）中的棋子不可被攻击。<br>
-    <span class="rk">铁路</span>（绿色轨道）上棋子可沿轨道移动多格，工兵可转弯。
-    <h3>操作方式</h3>点击己方棋子选中，再点击目标位置移动或攻击。对方棋子初始隐藏，交战后揭示。
-  </div>
-</div>
-
-<!-- ===== GAME SCREEN ===== -->
-<div id="game">
-  <div class="g-head">
-    <div class="turn-box"><div class="turn-dot" id="tdot"></div><span class="turn-text" id="ttext">你的回合</span></div>
-    <div class="hdr-r"><span class="diff-tag" id="dtag"></span><button class="btn-nw" onclick="location.reload()">新游戏</button></div>
-  </div>
-  <div class="g-body">
-    <div class="side-p"><div class="sp-title">AI阵亡</div><div class="dead-list" id="aiDead"></div></div>
-    <div class="board-wrap">
-      <div id="board"></div>
-      <div class="mt-label">山 界</div>
+</header>
+<main>
+  <div id="boardWrap"><svg id="board" viewBox="0 0 560 790"></svg></div>
+  <div id="panel">
+    <div class="card"><div id="status"></div></div>
+    <div class="card"><h3>对局记录</h3><div id="log"></div></div>
+    <div class="card"><h3>你吃掉的 AI 棋子</h3><div class="caps" id="capTop"></div></div>
+    <div class="card"><h3>AI 吃掉你的棋子</h3><div class="caps" id="capBottom"></div></div>
+    <div class="card">
+      <details>
+        <summary>📋 规则速查（铁路已修正）</summary>
+        <b>铁路（粗线）</b>：棋子可沿直线不限格滑行、途中不可拐弯；两侧纵向铁路经山界三条通道全程贯通，<b>可从己方后排铁路一步直达对方后排铁路（如 A12→A2）</b>；<b>大本营所在的最内一排（第1排/第13排）没有铁路</b>；工兵可在铁路网内任意拐弯。<br>
+        吃子：司令＞军长＞师长＞旅长＞团长＞营长＞连长＞排长＞工兵；同级同归于尽；炸弹碰任何子同归；工兵可挖地雷，其余子碰雷阵亡；军旗、地雷不可移动。<br>
+        公路（细线）每次一格；行营（虚线圆圈）内不可被攻击；棋子进入大本营后不可再移动。<br>
+        布阵限制：军旗必须在大本营；地雷只能在后两排；炸弹不能在第一排。<br>
+        胜负：吃掉对方军旗、或令对方无棋可走即胜。<br>
+        操作：布阵阶段点击己方两枚棋子交换位置；对局阶段点选己方棋子，点绿点移动、点红圈吃子。
+      </details>
     </div>
-    <div class="side-p"><div class="sp-title">我方阵亡</div><div class="dead-list" id="plDead"></div></div>
   </div>
-  <div class="g-log"><div class="log-t">战斗记录</div><div id="log"></div></div>
-</div>
-
-<!-- ===== GAME OVER ===== -->
-<div class="go-overlay" id="goOver">
-  <div class="go-box">
-    <span class="icon" id="goIcon"></span>
-    <h2 id="goTitle"></h2>
-    <p id="goDetail"></p>
-    <button class="btn-go" onclick="location.reload()">再来一局</button>
-  </div>
-</div>
+</main>
+<div id="toast"></div>
+<div id="modalBg"><div id="modal"><h2 id="mTitle"></h2><p id="mDesc"></p><button id="mBtn" class="primary">再来一局</button></div></div>
+<footer>单文件纯前端实现 · 可部署到 Netlify / Cloudflare Pages / GitHub Pages</footer>
 
 <script>
-// ============================
-// CONSTANTS
-// ============================
-const R=12,C=5;
-const PDEFS={
-  FLAG:{name:'军旗',rank:0,val:1000,n:1,mov:false,isFlag:true},
-  MINE:{name:'地雷',rank:-1,val:50,n:3,mov:false,isMine:true},
-  BOMB:{name:'炸弹',rank:-2,val:45,n:2,mov:true,isBomb:true},
-  CMDR:{name:'司令',rank:9,val:90,n:1,mov:true},
-  GENL:{name:'军长',rank:8,val:80,n:1,mov:true},
-  DIVI:{name:'师长',rank:7,val:70,n:2,mov:true},
-  BRIG:{name:'旅长',rank:6,val:60,n:2,mov:true},
-  REGI:{name:'团长',rank:5,val:50,n:2,mov:true},
-  BATT:{name:'营长',rank:4,val:40,n:2,mov:true},
-  COMP:{name:'连长',rank:3,val:30,n:3,mov:true},
-  PLAT:{name:'排长',rank:2,val:20,n:3,mov:true},
-  ENGR:{name:'工兵',rank:1,val:25,n:3,mov:true,isEngr:true}
+/* ================= 音效（Web Audio，无外部文件） ================= */
+const SFX={
+ ctx:null,on:true,
+ init(){ if(!this.ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(AC){try{this.ctx=new AC();}catch(e){}} }
+   if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume(); },
+ beep(f0,f1,dur,type,vol,when){
+   if(!this.on||!this.ctx)return;
+   const t=this.ctx.currentTime+(when||0);
+   const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+   o.type=type||'sine';o.frequency.setValueAtTime(f0,t);
+   if(f1&&f1!==f0)o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t+dur);
+   g.gain.setValueAtTime(0.0001,t);
+   g.gain.exponentialRampToValueAtTime(vol||.22,t+.012);
+   g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+   o.connect(g);g.connect(this.ctx.destination);
+   o.start(t);o.stop(t+dur+.06);
+ },
+ play(n){
+   if(!this.on)return;this.init();if(!this.ctx)return;
+   switch(n){
+     case 'select':this.beep(660,880,.08,'sine',.15);break;
+     case 'move':this.beep(440,300,.09,'triangle',.2);break;
+     case 'cap':this.beep(520,780,.1,'square',.16);this.beep(780,1040,.14,'sine',.2,.06);break;
+     case 'loss':this.beep(300,140,.28,'sawtooth',.22);break;
+     case 'both':this.beep(500,200,.18,'square',.18);this.beep(200,90,.22,'sawtooth',.18,.12);break;
+     case 'mine':this.beep(160,50,.45,'sawtooth',.3);break;
+     case 'flag':[523,659,784,1047].forEach((f,i)=>this.beep(f,f,.16,'triangle',.22,i*.12));break;
+     case 'win':[392,523,659,784,1047].forEach((f,i)=>this.beep(f,f,.2,'triangle',.22,i*.11));break;
+     case 'lose':[440,392,330,262,196].forEach((f,i)=>this.beep(f,f*.97,.24,'sine',.18,i*.14));break;
+     case 'bad':this.beep(150,110,.16,'square',.18);break;
+     case 'start':this.beep(523,784,.15,'triangle',.2);this.beep(784,1046,.18,'triangle',.2,.12);break;
+   }
+ }
 };
-const HQ={top:[[0,0],[0,4]],bot:[[11,0],[11,4]]};
-const CAMPS=[[2,1],[2,3],[3,2],[4,1],[4,3],[7,1],[7,3],[8,2],[9,1],[9,3]];
+document.addEventListener('pointerdown',()=>SFX.init(),{once:true});
 
-function shuf(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
-function posKey(r,c){return r*100+c}
-function isCamp(r,c){return CAMPS.some(([cr,cc])=>cr===r&&cc===c)}
-function isHQ(r,c){return[...HQ.top,...HQ.bot].some(([hr,hc])=>hr===r&&hc===c)}
-function isRail(r,c){
-  if(c===0&&r>=1&&r<=10)return true;
-  if(c===4&&r>=1&&r<=10)return true;
-  if((r===1||r===4||r===7||r===10)&&c>=0&&c<=4)return true;
-  if(c===2&&r>=4&&r<=7)return true;
-  return false;
+/* ================= 基础数据 ================= */
+const TYPES={
+ flag:{n:'军旗',rank:0,cnt:1,v:0,imm:true},
+ mine:{n:'地雷',rank:0,cnt:3,v:160,imm:true},
+ bomb:{n:'炸弹',rank:99,cnt:2,v:190},
+ gong:{n:'工兵',rank:1,cnt:3,v:130},
+ pai:{n:'排长',rank:2,cnt:3,v:45},
+ lian:{n:'连长',rank:3,cnt:3,v:65},
+ ying:{n:'营长',rank:4,cnt:2,v:90},
+ tuan:{n:'团长',rank:5,cnt:2,v:120},
+ lvz:{n:'旅长',rank:6,cnt:2,v:165},
+ shi:{n:'师长',rank:7,cnt:2,v:215},
+ jun:{n:'军长',rank:8,cnt:1,v:285},
+ siling:{n:'司令',rank:9,cnt:1,v:380}
+};
+const K=(r,c)=>r+','+c;
+const CAMP=new Set(['2,1','2,3','3,2','4,1','4,3','8,1','8,3','9,2','10,1','10,3']);
+const HQ=new Set(['0,1','0,3','12,1','12,3']);
+const nt=k=>{const[r,c]=k.split(',').map(Number);return 'ABCDE'[c]+(r+1);};
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ================= 棋盘拓扑（铁路已修正） =================
+   横向铁路：第2、6、8、12排（0索引 1/5/7/11）
+   纵向铁路：A、E两列，从第2排到第12排，经山界贯通（不触及大本营一排）
+   山界三条铁路通道：A、C、E列 第6排↔第8排 直连        */
+const adj=new Map();
+function pushAdj(r,c,r2,c2,t){
+  const k=K(r,c);let a=adj.get(k);if(!a){a=[];adj.set(k,a);}
+  const ex=a.find(e=>e.r===r2&&e.c===c2);
+  if(ex){if(t==='rail')ex.type='rail';return;}
+  a.push({r:r2,c:c2,type:t});
+}
+function addEdge(r,c,r2,c2,t){pushAdj(r,c,r2,c2,t);pushAdj(r2,c2,r,c,t);}
+const H_RAIL=new Set([1,5,7,11]);
+[[0,5],[7,12]].forEach(([r0,r1])=>{
+  for(let r=r0;r<=r1;r++)for(let c=0;c<5;c++){
+    if(c<4)addEdge(r,c,r,c+1,H_RAIL.has(r)?'rail':'road');
+    if(r<r1){
+      const rail=(c===0||c===4)&&r>=1&&r<=10;   // 两侧纵向铁路，止于第2/12排，不进大本营排
+      addEdge(r,c,r+1,c,rail?'rail':'road');
+    }
+  }
+});
+[0,2,4].forEach(c=>addEdge(5,c,7,c,'rail'));    // 山界三条铁路通道（跨行直连）
+CAMP.forEach(k=>{                               // 行营八方斜线（公路）
+  const[r,c]=k.split(',').map(Number);
+  [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>{
+    const r2=r+dr,c2=c+dc;
+    if(r2>=0&&r2<=12&&c2>=0&&c2<=4&&r2!==6)addEdge(r,c,r2,c2,'road');
+  });
+});
+
+/* ================= 布阵 ================= */
+function defaultLayoutBottom(){return{
+ '12,0':'pai','12,1':'flag','12,2':'mine','12,3':'bomb','12,4':'mine',
+ '11,0':'lian','11,1':'mine','11,2':'gong','11,3':'jun','11,4':'tuan',
+ '10,0':'ying','10,2':'siling','10,4':'shi',
+ '9,0':'tuan','9,1':'lian','9,3':'bomb','9,4':'lvz',
+ '8,0':'gong','8,2':'ying','8,4':'gong',
+ '7,0':'shi','7,1':'lvz','7,2':'pai','7,3':'pai','7,4':'lian'};}
+function mirror(l){const m={};Object.entries(l).forEach(([k,t])=>{const[r,c]=k.split(',').map(Number);m[K(12-r,c)]=t;});return m;}
+function randomLayout(side){
+  const back=side==='top'?[0,1]:[11,12],front=side==='top'?5:7;
+  const hqs=side==='top'?[[0,1],[0,3]]:[[12,1],[12,3]];
+  const r0=side==='top'?0:7,r1=side==='top'?5:12,nodes=[];
+  for(let r=r0;r<=r1;r++)for(let c=0;c<5;c++)if(!CAMP.has(K(r,c)))nodes.push([r,c]);
+  const lay={};const fq=hqs[Math.random()<.5?0:1];lay[K(fq[0],fq[1])]='flag';
+  const mp=shuffle(nodes.filter(([r,c])=>back.includes(r)&&lay[K(r,c)]===undefined));
+  for(let i=0;i<3;i++)lay[K(mp[i][0],mp[i][1])]='mine';
+  const bp=shuffle(nodes.filter(([r,c])=>r!==front&&lay[K(r,c)]===undefined));
+  for(let i=0;i<2;i++)lay[K(bp[i][0],bp[i][1])]='bomb';
+  const rest=[];Object.keys(TYPES).forEach(t=>{
+    let need=TYPES[t].cnt;if(t==='flag')need-=1;if(t==='mine')need-=3;if(t==='bomb')need-=2;
+    for(let i=0;i<need;i++)rest.push(t);});
+  shuffle(rest);
+  nodes.filter(([r,c])=>lay[K(r,c)]===undefined).forEach(([r,c],i)=>lay[K(r,c)]=rest[i]);
+  return lay;
+}
+function ownNode(r,c,side){return side==='top'?(r>=0&&r<=5):(r>=7&&r<=12);}
+function canPlaceAt(t,r,c,side){
+  if(!ownNode(r,c,side)||CAMP.has(K(r,c)))return false;
+  if(t==='flag')return side==='top'?(K(r,c)==='0,1'||K(r,c)==='0,3'):(K(r,c)==='12,1'||K(r,c)==='12,3');
+  const back=side==='top'?[0,1]:[11,12],front=side==='top'?5:7;
+  if(t==='mine')return back.includes(r);
+  if(t==='bomb')return r!==front;
+  return true;
 }
 
-// ============================
-// GAME CLASS
-// ============================
-class Game{
-  constructor(diff){
-    this.diff=diff;
-    this.b=Array.from({length:R},()=>Array(C).fill(null));
-    this.rev=new Set();
-    this.over=false;
-    this.winner=null;
-    this.deadTop=[];this.deadBot=[];
-    this._setup();
+/* ================= 全局状态 ================= */
+let pieces=[],boardMap=new Map(),phase='setup',turn='bottom',difficulty='medium';
+let sel=null,legal=null,moveNo=0,logs=[],deadTop=[],deadBottom=[],lastMove=null;
+let aiKnowsPlayerFlag=null,playerKnowsAiFlag=null;
+function rebuild(){boardMap=new Map();pieces.forEach(p=>{if(p.alive)boardMap.set(K(p.r,p.c),p);});}
+function newGame(){
+  pieces=[];let id=0;
+  Object.entries(defaultLayoutBottom()).forEach(([k,t])=>{const[r,c]=k.split(',').map(Number);
+    pieces.push({id:id++,side:'bottom',type:t,r,c,alive:true,revealed:true});});
+  const ai=Math.random()<.35?mirror(defaultLayoutBottom()):randomLayout('top');
+  Object.entries(ai).forEach(([k,t])=>{const[r,c]=k.split(',').map(Number);
+    pieces.push({id:id++,side:'top',type:t,r,c,alive:true,revealed:false});});
+  pieceEls.forEach(g=>g.remove());pieceEls.clear();
+  rebuild();phase='setup';turn='bottom';sel=null;legal=null;moveNo=0;logs=[];
+  deadTop=[];deadBottom=[];lastMove=null;aiKnowsPlayerFlag=null;playerKnowsAiFlag=null;
+  hideModal();renderAll();setStatus('布阵中：点击两枚己方棋子可交换位置，完成后点「开始对局」');
+}
+
+/* ================= 走法生成（滑行已支持跨山界直连） ================= */
+function railStep(r,c,dr,dc){                    // 找同方向共线的下一段铁路（含跨行直连边）
+  let found=null;
+  (adj.get(K(r,c))||[]).forEach(e=>{
+    if(e.type!=='rail')return;
+    const dr2=e.r-r,dc2=e.c-c;
+    if(dr2*dc-dc2*dr===0&&dr2*dr+dc2*dc>0)found=e;
+  });
+  return found;
+}
+function legalMoves(p,bm){
+  bm=bm||boardMap;const res=new Map();
+  if(!p.alive||TYPES[p.type].imm||HQ.has(K(p.r,p.c)))return res;
+  const push=(r,c)=>{const k=K(r,c),t=bm.get(k);
+    if(t){if(t.side!==p.side&&!CAMP.has(k))res.set(k,{r,c,cap:t});}
+    else res.set(k,{r,c,cap:null});};
+  (adj.get(K(p.r,p.c))||[]).forEach(e=>push(e.r,e.c));
+  if(p.type==='gong'){                           // 工兵：铁路网内任意拐弯
+    const vis=new Set([K(p.r,p.c)]),q=[[p.r,p.c]];
+    while(q.length){const[r,c]=q.shift();
+      for(const e of(adj.get(K(r,c))||[])){
+        if(e.type!=='rail')continue;
+        const k=K(e.r,e.c);if(vis.has(k))continue;vis.add(k);
+        const t=bm.get(k);
+        if(t){if(t.side!==p.side&&!CAMP.has(k))res.set(k,{r:e.r,c:e.c,cap:t});continue;}
+        res.set(k,{r:e.r,c:e.c,cap:null});q.push([e.r,e.c]);}}
+  }else{                                         // 其余棋子：铁路直线滑行（可跨山界直达对方腹地）
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
+      let r=p.r,c=p.c;
+      while(true){
+        const e=railStep(r,c,dr,dc);
+        if(!e)break;
+        const k=K(e.r,e.c),t=bm.get(k);
+        if(t){if(t.side!==p.side&&!CAMP.has(k))res.set(k,{r:e.r,c:e.c,cap:t});break;}
+        res.set(k,{r:e.r,c:e.c,cap:null});r=e.r;c=e.c;}});
   }
+  return res;
+}
+function isOwnHQ(side,r,c){return side==='top'?(r===0&&(c===1||c===3)):(r===12&&(c===1||c===3));}
+function collectMoves(side,plist,bm){
+  const out=[];
+  plist.forEach(p=>{if(p.alive&&p.side===side){
+    legalMoves(p,bm).forEach(mv=>{
+      if(side==='top'&&isOwnHQ('top',mv.r,mv.c))return;
+      out.push({p,mv});});}});
+  return out;
+}
 
-  _setup(){this._place('top');this._place('bot')}
-
-  _place(side){
-    const rows=side==='top'?[0,1,2,3,4,5]:[6,7,8,9,10,11];
-    const br=side==='top'?0:11,br2=side==='top'?1:10;
-    const hq=HQ[side];
-    // build pieces
-    let pcs=[];
-    for(const[k,d]of Object.entries(PDEFS))for(let i=0;i<d.n;i++)pcs.push({type:k,...d,side});
-    shuf(pcs);
-    const flag=pcs.find(p=>p.isFlag);
-    const mines=pcs.filter(p=>p.isMine);
-    const bombs=pcs.filter(p=>p.isBomb);
-    const rest=pcs.filter(p=>!p.isFlag&&!p.isMine&&!p.isBomb);
-    // positions
-    let all=[];
-    for(const r of rows)for(let c=0;c<C;c++)if(!this.b[r][c])all.push([r,c]);
-    shuf(all);
-    // flag in hq
-    const hqAvail=all.filter(([r,c])=>hq.some(([hr,hc])=>hr===r&&hc===c));
-    shuf(hqAvail);
-    const fp=hqAvail[0];this.b[fp[0]][fp[1]]=flag;
-    // mines in back 2 rows
-    let mAvail=all.filter(([r,c])=>!this.b[r][c]&&(r===br||r===br2));
-    shuf(mAvail);
-    for(const m of mines){const p=mAvail.shift();this.b[p[0]][p[1]]=m}
-    // bombs not in backmost row
-    let bAvail=all.filter(([r,c])=>!this.b[r][c]&&r!==br);
-    shuf(bAvail);
-    for(const b of bombs){const p=bAvail.shift();this.b[p[0]][p[1]]=b}
-    // rest
-    let rem=all.filter(([r,c])=>!this.b[r][c]);
-    shuf(rem);
-    for(let i=0;i<rest.length;i++)this.b[rem[i][0]][rem[i][1]]=rest[i];
+/* ================= 战斗判定 ================= */
+function combatTypes(aT,dT){
+  if(dT==='flag')return{a:false,b:true,flag:true};
+  if(aT==='bomb'||dT==='bomb')return{a:true,b:true};
+  if(dT==='mine')return aT==='gong'?{a:false,b:true}:{a:true,b:false};
+  const ra=TYPES[aT].rank,rb=TYPES[dT].rank;
+  return ra>rb?{a:false,b:true}:ra<rb?{a:true,b:false}:{a:true,b:true};
+}
+function otherHQKey(side,k){
+  const m=side==='top'?{'0,1':'0,3','0,3':'0,1'}:{'12,1':'12,3','12,3':'12,1'};
+  return m[k];
+}
+function doMove(p,mv){
+  const from=K(p.r,p.c);
+  if(mv.cap){
+    const d=mv.cap,res=combatTypes(p.type,d.type);
+    p.revealed=true;d.revealed=true;
+    if(res.flag){SFX.play('flag');d.alive=false;p.r=mv.r;p.c=mv.c;
+      (d.side==='top'?deadTop:deadBottom).push(d);
+      rebuild();logMove(p,from,mv,res,d);endGame(p.side,'夺取军旗');return;}
+    if(res.a&&res.b)SFX.play('both');
+    else if(res.a)SFX.play(d.type==='mine'?'mine':'loss');
+    else SFX.play('cap');
+    if(res.a){p.alive=false;(p.side==='top'?deadTop:deadBottom).push(p);}
+    else{p.r=mv.r;p.c=mv.c;}
+    if(res.b){d.alive=false;(d.side==='top'?deadTop:deadBottom).push(d);}
+    if(d.side==='top'&&HQ.has(from)&&!d.alive){
+      playerKnowsAiFlag=otherHQKey('top',from);
+      logs.unshift('💡 推理：AI 军旗必在 '+nt(playerKnowsAiFlag));}
+    if(d.side==='bottom'&&HQ.has(from)&&!d.alive){
+      aiKnowsPlayerFlag=otherHQKey('bottom',from);}
+    rebuild();logMove(p,from,mv,res,d);
+  }else{
+    SFX.play('move');
+    p.r=mv.r;p.c=mv.c;rebuild();logMove(p,from,mv,null,null);
   }
+  lastMove={from:from,to:K(mv.r,mv.c)};
+}
+function logMove(p,from,mv,res,d){
+  moveNo++;
+  const me=p.side==='bottom'?'你':'AI',foe=p.side==='bottom'?'AI':'你';
+  const name=TYPES[p.type].n,f=nt(from),t=nt(K(mv.r,mv.c));
+  let line;
+  if(!res)line=`${moveNo}. ${me} ${name} ${f}→${t}`;
+  else if(res.flag)line=`${moveNo}. ${me} ${name} ${t} 🏆夺取军旗！`;
+  else if(res.a&&res.b)line=`${moveNo}. ${me} ${name} ${f}×${t} 与${foe}的${TYPES[d.type].n}同归于尽`;
+  else if(res.a)line=`${moveNo}. ${me} ${name} ${f}×${t} 进攻失利，被${foe}的${TYPES[d.type].n}击杀`;
+  else line=`${moveNo}. ${me} ${name} ${f}×${t} 吃掉${foe}的${TYPES[d.type].n}`;
+  logs.unshift(line);renderLog();
+}
 
-  get(r,c){return r>=0&&r<R&&c>=0&&c<C?this.b[r][c]:null}
-
-  adjMoves(r,c){
-    const p=this.b[r][c];if(!p)return[];
-    const mv=[];
-    for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
-      const nr=r+dr,nc=c+dc,t=this.get(nr,nc);
-      if(nr<0||nr>=R||nc<0||nc>=C)continue;
-      if(!t)mv.push([nr,nc]);
-      else if(t.side!==p.side&&!isCamp(nr,nc))mv.push([nr,nc]);
+/* ================= AI ================= */
+function hiddenCounts(side,st){const cnt={};let tot=0;
+  (st?st.pieces:pieces).forEach(p=>{if(p.alive&&p.side===side&&!p.revealed){cnt[p.type]=(cnt[p.type]||0)+1;tot++;}});
+  return{cnt,tot};}
+function evValue(hc){let s=0,t=0;Object.entries(hc.cnt).forEach(([ty,n])=>{if(ty==='flag')return;s+=TYPES[ty].v*n;t+=n;});return t?s/t:0;}
+function gainExact(a,d){
+  if(d==='flag')return 60000;
+  if(d==='mine')return a==='gong'?TYPES.mine.v:(a==='bomb'?TYPES.mine.v-TYPES.bomb.v:-TYPES[a].v);
+  if(a==='bomb')return TYPES[d].v-TYPES.bomb.v;
+  const ra=TYPES[a].rank,rb=TYPES[d].rank;
+  if(ra>rb)return TYPES[d].v;if(ra<rb)return -TYPES[a].v;return TYPES[d].v-TYPES[a].v;
+}
+function attackGain(att,def,st){
+  if(def.revealed)return gainExact(att.type,def.type);
+  const hc=hiddenCounts(def.side,st),cnt={...hc.cnt},dk=K(def.r,def.c);
+  if(!HQ.has(dk)){delete cnt.flag;
+    let s=0,t=0;Object.entries(cnt).forEach(([ty,n])=>{s+=gainExact(att.type,ty)*n;t+=n;});return t?s/t:0;}
+  let pFlag=0;const know=def.side==='bottom'?aiKnowsPlayerFlag:playerKnowsAiFlag;
+  if(know)pFlag=dk===know?1:0;
+  else{const hqs=def.side==='top'?['0,1','0,3']:['12,1','12,3'];
+    const bm=st?st.board:boardMap;
+    const n=hqs.filter(k=>{const q=bm.get(k);return q&&q.alive&&!q.revealed;}).length;
+    pFlag=n>0?1/n:0;}
+  delete cnt.flag;
+  let s2=0,t2=0;Object.entries(cnt).forEach(([ty,n])=>{s2+=gainExact(att.type,ty)*n;t2+=n;});
+  return pFlag*60000+(t2?s2/t2*(1-pFlag):0);
+}
+function evaluate(st){
+  if(st.over)return st.winner==='top'?1e9:-1e9;
+  const evB=evValue(hiddenCounts('bottom',st));
+  const pFlag=aiKnowsPlayerFlag;
+  let s=0;
+  st.pieces.forEach(p=>{
+    if(!p.alive||p.type==='flag')return;
+    if(p.side==='top'){
+      s+=TYPES[p.type].v;
+      const w={siling:2.2,jun:2.2,shi:2.6,lvz:2.2,tuan:1.8,ying:1.3,lian:.9,pai:.7,gong:2.4,bomb:1.4}[p.type]||0;
+      s+=(12-p.r)*w*.55;
+      if(p.type==='gong'&&p.r>=9)s+=(p.r-8)*7;
+      if(p.r>=10)s+=12;
+      if(pFlag){const[fr,fc]=pFlag.split(',').map(Number);
+        const d=Math.abs(p.r-fr)+Math.abs(p.c-fc);if(d<=3)s+=(4-d)*22;}
+      if(CAMP.has(K(p.r,p.c)))s+=6;
+    }else{
+      s-=p.revealed?TYPES[p.type].v:evB;
+      const w=p.revealed?({siling:2,jun:2,shi:2.4,lvz:2,tuan:1.6,ying:1.2,lian:.8,pai:.6,gong:2.2,bomb:1.2}[p.type]||1):1.5;
+      s-=p.r*w*.55;
+      if(p.type==='gong'&&p.revealed&&p.r<=3)s-=(4-p.r)*7;
+      if(p.r<=2)s-=(3-p.r)*22;
+      if(CAMP.has(K(p.r,p.c)))s-=6;
     }
-    return mv;
+  });
+  return s;
+}
+function cloneStateFrom(st){
+  const s2={pieces:st.pieces.map(q=>({...q})),over:false,winner:null};
+  s2.board=new Map();s2.pieces.forEach(q=>{if(q.alive)s2.board.set(K(q.r,q.c),q);});
+  return s2;
+}
+function simMove(st,p,mv){
+  const bm=st.board;
+  if(mv.cap){
+    const d=bm.get(K(mv.r,mv.c));
+    let g=d.type;
+    if(!d.revealed){
+      const hc=hiddenCounts(d.side,st),cnt={...hc.cnt};
+      if(!HQ.has(K(d.r,d.c)))delete cnt.flag;
+      let best='pai',bn=-1;Object.entries(cnt).forEach(([t,n])=>{if(n>bn){bn=n;best=t;}});
+      g=best;
+    }
+    const res=combatTypes(p.type,g);
+    p.revealed=true;d.revealed=true;
+    if(res.flag){st.over=true;st.winner=p.side;return;}
+    bm.delete(K(d.r,d.c));d.alive=false;
+    bm.delete(K(p.r,p.c));
+    if(res.a){p.alive=false;}
+    else{p.r=mv.r;p.c=mv.c;bm.set(K(p.r,p.c),p);}
+  }else{
+    bm.delete(K(p.r,p.c));p.r=mv.r;p.c=mv.c;bm.set(K(p.r,p.c),p);
   }
-
-  railMoves(r,c){
-    const p=this.b[r][c];if(!p||!isRail(r,c))return[];
-    const mv=[];
-    if(p.isEngr){
-      // BFS along rail
-      const q=[[r,c]],vis=new Set([posKey(r,c)]);
-      while(q.length){
-        const[cr,cc]=q.shift();
-        for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
-          const nr=cr+dr,nc=cc+dc,k=posKey(nr,nc);
-          if(vis.has(k)||nr<0||nr>=R||nc<0||nc>=C||!isRail(nr,nc))continue;
-          vis.add(k);
-          const t=this.b[nr][nc];
-          if(!t){mv.push([nr,nc]);q.push([nr,nc])}
-          else if(t.side!==p.side&&!isCamp(nr,nc))mv.push([nr,nc]);
+}
+function quickScoreAI(m){
+  const{p,mv}=m;let s=0;
+  if(mv.cap)s+=attackGain(p,mv.cap,null);
+  s+=(mv.r-p.r)*2.2;
+  if(p.r<7&&mv.r>=7)s+=10;
+  if(CAMP.has(K(mv.r,mv.c)))s+=3;
+  if(mv.r>=10)s+=6;
+  return s;
+}
+function aiChooseMove(){
+  const all=collectMoves('top',pieces,boardMap);
+  if(!all.length)return null;
+  const D={easy:{rnd:.65,noise:50,top:5,depth:1},
+           medium:{rnd:.12,noise:12,top:6,depth:1},
+           hard:{rnd:0,noise:0,branch:14,depth:2}}[difficulty];
+  if(D.rnd&&Math.random()<D.rnd)return all[Math.floor(Math.random()*all.length)];
+  const scored=all.map(m=>({m,s:quickScoreAI(m)+Math.random()*D.noise}));
+  scored.sort((x,y)=>y.s-x.s);
+  if(D.depth<2){
+    if(difficulty==='medium'){
+      const top=scored.slice(0,D.top),tot=top.reduce((a,x)=>a+x.s,0);
+      if(tot<=0)return top[0].m;
+      let r=Math.random()*tot;
+      for(const x of top){r-=x.s;if(r<=0)return x.m;}
+      return top[0].m;
+    }
+    return scored[0].m;
+  }
+  let best=scored[0].m,bestS=-Infinity;
+  for(const cand of scored.slice(0,D.branch)){
+    const st=cloneStateFrom({pieces});
+    const sp=st.pieces.find(x=>x.id===cand.m.p.id);
+    simMove(st,sp,{r:cand.m.mv.r,c:cand.m.mv.c,cap:st.board.get(K(cand.m.mv.r,cand.m.mv.c))});
+    let sc;
+    if(st.over)sc=st.winner==='top'?1e9:-1e9;
+    else{
+      const reps=collectMoves('bottom',st.pieces,st.board);
+      if(!reps.length)sc=1e9;
+      else{
+        const rs=reps.map(m=>({m,s:(m.mv.cap?attackGain(m.p,m.mv.cap,st):0)+(m.p.r-m.mv.r)*2+(m.p.r>=7&&m.mv.r<7?10:0)}))
+                    .sort((a,b)=>b.s-a.s).slice(0,8);
+        let worst=Infinity;
+        for(const rr of rs){
+          const st2=cloneStateFrom(st);
+          const sp2=st2.pieces.find(x=>x.id===rr.m.p.id);
+          simMove(st2,sp2,{r:rr.m.mv.r,c:rr.m.mv.c,cap:st2.board.get(K(rr.m.mv.r,rr.m.mv.c))});
+          const e=st2.over?(st2.winner==='top'?1e9:-1e9):evaluate(st2);
+          if(e<worst)worst=e;
+          if(worst<=bestS)break;
         }
-      }
-    }else{
-      // straight line
-      for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
-        let nr=r+dr,nc=c+dc;
-        while(nr>=0&&nr<R&&nc>=0&&nc<C&&isRail(nr,nc)){
-          const t=this.b[nr][nc];
-          if(!t){mv.push([nr,nc])}
-          else if(t.side!==p.side&&!isCamp(nr,nc)){mv.push([nr,nc]);break}
-          else break;
-          nr+=dr;nc+=dc;
-        }
+        sc=worst;
       }
     }
-    return mv;
+    if(sc>bestS){bestS=sc;best=cand.m;}
   }
+  return best;
+}
 
-  validMoves(r,c){
-    const p=this.b[r][c];if(!p||!p.mov)return[];
-    const s=new Set();
-    for(const[mr,mc]of this.adjMoves(r,c))s.add(posKey(mr,mc));
-    for(const[mr,mc]of this.railMoves(r,c))s.add(posKey(mr,mc));
-    // remove current pos
-    s.delete(posKey(r,c));
-    return[...s].map(k=>[0|k/100,k%100]);
-  }
+/* ================= 回合与胜负 ================= */
+function sideHasMove(side){return pieces.some(p=>p.alive&&p.side===side&&legalMoves(p).size>0);}
+function endGame(winner,reason){
+  phase='over';sel=null;legal=null;renderAll();
+  const win=winner==='bottom';
+  setStatus((win?'🎉 你赢了！':'😢 AI 获胜')+'（'+reason+'）');
+  document.getElementById('mTitle').textContent=win?'🎉 胜利':'😢 失败';
+  document.getElementById('mTitle').style.color=win?'#7ec8e3':'#e74c3c';
+  document.getElementById('mDesc').textContent='胜负原因：'+reason;
+  document.getElementById('modalBg').style.display='flex';
+  setTimeout(()=>SFX.play(win?'win':'lose'),reason.includes('军旗')?700:120);
+}
+function afterMove(){
+  renderAll();
+  if(phase!=='play')return;
+  turn=turn==='bottom'?'top':'bottom';
+  if(!sideHasMove(turn)){endGame(turn==='bottom'?'top':'bottom',(turn==='bottom'?'你':'AI')+'无棋可走');return;}
+  if(turn==='top'){
+    setStatus('AI 思考中…');
+    setTimeout(()=>{
+      if(phase!=='play'||turn!=='top')return;
+      const mv=aiChooseMove();
+      if(!mv){endGame('bottom','AI无棋可走');return;}
+      doMove(mv.p,mv.mv);
+      if(phase==='play'){
+        turn='bottom';
+        if(!sideHasMove('bottom')){endGame('top','你无棋可走');return;}
+        setStatus('你的回合');
+      }
+      renderAll();
+    },difficulty==='hard'?650:480);
+  }else setStatus('你的回合');
+  renderAll();
+}
 
-  combat(atk,def){
-    if(atk.isBomb||def.isBomb)return'both';
-    if(def.isMine)return atk.isEngr?'atk':'def';
-    if(def.isFlag)return'atk';
-    if(atk.rank>def.rank)return'atk';
-    if(atk.rank<def.rank)return'def';
-    return'both';
-  }
-
-  doMove(fr,fc,tr,tc){
-    const p=this.b[fr][fc],t=this.b[tr][tc];
-    if(!t){
-      this.b[tr][tc]=p;this.b[fr][fc]=null;
-      return{type:'mv',p,fr,fc,tr,tc};
-    }
-    const res=this.combat(p,t);
-    if(p.side==='top')this.rev.add(posKey(fr,fc));
-    if(t.side==='top')this.rev.add(posKey(tr,tc));
-    if(p.side==='bot')this.rev.add(posKey(fr,fc));
-    if(t.side==='bot')this.rev.add(posKey(tr,tc));
-    let winner=null;
-    if(res==='atk'){
-      this.b[tr][tc]=p;this.b[fr][fc]=null;winner='atk';
-      if(t.side==='top')this.deadTop.push(t);else this.deadBot.push(t);
-    }else if(res==='def'){
-      this.b[fr][fc]=null;winner='def';
-      if(p.side==='top')this.deadTop.push(p);else this.deadBot.push(p);
-    }else{
-      this.b[tr][tc]=null;this.b[fr][fc]=null;winner='both';
-      if(p.side==='top')this.deadTop.push(p);else this.deadBot.push(p);
-      if(t.side==='top')this.deadTop.push(t);else this.deadBot.push(t);
-    }
-    this._chkOver();
-    return{type:'cb',atk:p,def:t,res,winner,fr,fc,tr,tc};
-  }
-
-  _chkOver(){
-    let tf=false,bf=false,tm=false,bm=false;
-    for(let r=0;r<R;r++)for(let c=0;c<C;c++){
-      const p=this.b[r][c];if(!p)continue;
-      if(p.side==='top'){if(p.isFlag)tf=true;if(p.mov)tm=true}
-      if(p.side==='bot'){if(p.isFlag)bf=true;if(p.mov)bm=true}
-    }
-    if(!bf){this.over=true;this.winner='top'}
-    else if(!tf){this.over=true;this.winner='bot'}
-    else if(!bm){this.over=true;this.winner='top'}
-    else if(!tm){this.over=true;this.winner='bot'}
-  }
-
-  allMoves(side){
-    const mv=[];
-    for(let r=0;r<R;r++)for(let c=0;c<C;c++){
-      const p=this.b[r][c];if(!p||p.side!==side)continue;
-      for(const[tr,tc]of this.validMoves(r,c))mv.push({fr:r,fc:c,tr,tc,p,t:this.b[tr][tc]});
-    }
-    return mv;
-  }
-
-  _val(p){return PDEFS[p.type]?.val||0}
-
-  _posVal(r,c,p){
-    if(!p.mov)return 0;
-    const fwd=p.side==='top'?1:-1;
-    return fwd*(r-5.5)*3+(2-Math.abs(c-2))*2;
-  }
-
-  _eval(){
-    let s=0;
-    for(let r=0;r<R;r++)for(let c=0;c<C;c++){
-      const p=this.b[r][c];if(!p)continue;
-      const sign=p.side==='top'?1:-1;
-      s+=sign*(this._val(p)+this._posVal(r,c,p));
-    }
-    if(this.over){
-      if(this.winner==='top')s+=99999;
-      else if(this.winner==='bot')s-=99999;
-    }
-    return s;
-  }
-
-  _clone(){
-    const g=new Game(1);
-    g.b=this.b.map(row=>row.map(c=>c?{...c}:null));
-    g.rev=new Set(this.rev);
-    g.over=this.over;g.winner=this.winner;
-    g.deadTop=[...this.deadTop];g.deadBot=[...this.deadBot];
-    return g;
-  }
-
-  aiMove(){
-    const moves=this.allMoves('top');
-    if(!moves.length)return null;
-    if(this.diff===1)return this._aiEasy(moves);
-    if(this.diff===2)return this._aiMed(moves);
-    return this._aiHard(moves);
-  }
-
-  _aiEasy(moves){
-    const caps=moves.filter(m=>m.t);
-    if(caps.length&&Math.random()<.5)return caps[0|Math.random()*caps.length];
-    return moves[0|Math.random()*moves.length];
-  }
-
-  _aiMed(moves){
-    let best=-1e9,bestM=[];
-    for(const m of moves){
-      let sc=0;
-      if(m.t){
-        const res=this.combat(m.p,m.t);
-        const av=this._val(m.p),dv=this._val(m.t);
-        if(res==='atk')sc=dv+40;
-        else if(res==='def')sc=-av-40;
-        else sc=dv-av;
-      }else sc=this._posVal(m.tr,m.tc,m.p)*2;
-      sc+=Math.random()*12;
-      if(sc>best){best=sc;bestM=[m]}
-      else if(Math.abs(sc-best)<.5)bestM.push(m);
-    }
-    return bestM[0|Math.random()*bestM.length];
-  }
-
-  _aiHard(moves){
-    let best=-1e9,bestM=moves[0];
-    // move ordering: captures first
-    moves.sort((a,b)=>{
-      const sa=a.t?this._val(a.t):0,sb=b.t?this._val(b.t):0;
-      return sb-sa;
+/* ================= 渲染 ================= */
+const svg=document.getElementById('board');
+const SVGNS='http://www.w3.org/2000/svg';
+const X=c=>60+c*110,Y=r=>50+r*56;
+function el(tag,attrs,parent){const e=document.createElementNS(SVGNS,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+let gBoard,gHi,gPieces;
+function buildBoard(){
+  svg.innerHTML='';
+  gBoard=el('g',{},svg);gHi=el('g',{'pointer-events':'none'},svg);gPieces=el('g',{'pointer-events':'none'},svg);
+  el('rect',{x:25,y:20,width:510,height:335,rx:10,fill:'#eaf2ea',opacity:.6},gBoard);
+  el('rect',{x:25,y:435,width:510,height:335,rx:10,fill:'#f7e9e6',opacity:.6},gBoard);
+  const seen=new Set();
+  adj.forEach((list,k)=>{
+    const[r1,c1]=k.split(',').map(Number);
+    list.forEach(e=>{
+      const kk=[K(r1,c1),K(e.r,e.c)].sort().join('|');
+      if(seen.has(kk))return;seen.add(kk);
+      if(e.type==='road'){
+        el('line',{x1:X(c1),y1:Y(r1),x2:X(e.c),y2:Y(e.r),stroke:'#9aa0a6','stroke-width':1.6},gBoard);
+      }else{
+        el('line',{x1:X(c1),y1:Y(r1),x2:X(e.c),y2:Y(e.r),stroke:'#2f3640','stroke-width':6,'stroke-linecap':'round'},gBoard);
+        el('line',{x1:X(c1),y1:Y(r1),x2:X(e.c),y2:Y(e.r),stroke:'#f5f6fa','stroke-width':2,'stroke-linecap':'round'},gBoard);
+      }
     });
-    const depth=3;
-    for(const m of moves){
-      const snap=this._clone();
-      this.doMove(m.fr,m.fc,m.tr,m.tc);
-      const sc=this._mm(depth-1,false,-1e9,1e9);
-      this._restore(snap);
-      if(sc>best){best=sc;bestM=m}
+  });
+  el('line',{x1:X(0),y1:386,x2:X(4),y2:386,stroke:'#b2bec3','stroke-width':2,'stroke-dasharray':'6 5'},gBoard);
+  [1,3].forEach(c=>{
+    const x=X(c),y=386;
+    el('path',{d:`M${x-34},${y+16} L${x},${y-20} L${x+34},${y+16} Z`,fill:'#8d6e63',stroke:'#5d4037','stroke-width':1.5},gBoard);
+    el('path',{d:`M${x-9},${y-6} L${x},${y-20} L${x+9},${y-6} Z`,fill:'#eceff1'},gBoard);
+  });
+  const mt=el('text',{x:225,y:392,'text-anchor':'middle','font-size':13,fill:'#7f5539','font-weight':'bold'},gBoard);
+  mt.textContent='山界';
+  for(let r=0;r<=12;r++){if(r===6)continue;
+    for(let c=0;c<5;c++){
+      const k=K(r,c),x=X(c),y=Y(r);
+      if(CAMP.has(k)){
+        el('circle',{cx:x,cy:y,r:23,fill:'#e8f4f8',stroke:'#7fb3c8','stroke-width':2,'stroke-dasharray':'4 3'},gBoard);
+      }else if(HQ.has(k)){
+        el('ellipse',{cx:x,cy:y,rx:35,ry:21,fill:'#fdeeca',stroke:'#b8860b','stroke-width':2.5},gBoard);
+        el('ellipse',{cx:x,cy:y,rx:26,ry:13,fill:'none',stroke:'#b8860b','stroke-width':1},gBoard);
+      }else{
+        el('rect',{x:x-32,y:y-17,width:64,height:34,rx:5,fill:'#fffbe8',stroke:'#c9b98a','stroke-width':1.5},gBoard);
+      }
+    }}
+  const t1=el('text',{x:280,y:14,'text-anchor':'middle','font-size':13,fill:'#5d6d7e','font-weight':'bold'},gBoard);t1.textContent='AI 阵地（蓝）';
+  const t2=el('text',{x:280,y:784,'text-anchor':'middle','font-size':13,fill:'#922b21','font-weight':'bold'},gBoard);t2.textContent='你的阵地（红）';
+  for(let c=0;c<5;c++){const t=el('text',{x:X(c),y:752,'text-anchor':'middle','font-size':12,fill:'#7f8c8d'},gBoard);t.textContent='ABCDE'[c];}
+  for(let r=0;r<=12;r++){if(r===6)continue;
+    const t=el('text',{x:26,y:Y(r)+4,'text-anchor':'middle','font-size':10,fill:'#95a5a6'},gBoard);t.textContent=r+1;}
+}
+const pieceEls=new Map();
+function renderPieces(){
+  const aliveIds=new Set();
+  pieces.forEach(p=>{
+    if(!p.alive)return;
+    aliveIds.add(p.id);
+    let g=pieceEls.get(p.id);
+    const show=p.side==='bottom'||p.revealed;
+    if(!g){
+      g=el('g',{},gPieces);
+      g._rect=el('rect',{x:-28,y:-16,width:56,height:32,rx:6},g);
+      g._tx=el('text',{'text-anchor':'middle',y:5,'font-size':14,'font-weight':'bold'},g);
+      g.style.transition='none';
+      g.style.transform=`translate(${X(p.c)}px,${Y(p.r)}px)`;
+      pieceEls.set(p.id,g);
+      requestAnimationFrame(()=>{g.style.transition='transform .35s ease, opacity .4s';});
     }
-    return bestM;
-  }
-
-  _mm(d,a,b,maxi){
-    if(d===0||this.over)return this._eval();
-    const side=maxi?'top':'bot';
-    const moves=this.allMoves(side);
-    if(!moves.length)return this._eval();
-    moves.sort((x,y)=>{
-      const sx=x.t?this._val(x.t):0,sy=y.t?this._val(y.t):0;
-      return sy-sx;
+    g.style.opacity=1;
+    g.style.transform=`translate(${X(p.c)}px,${Y(p.r)}px)`;
+    if(p.side==='bottom'){
+      g._rect.setAttribute('fill','#c0392b');g._rect.setAttribute('stroke','#7b241c');
+      g._tx.setAttribute('fill','#fff');g._tx.textContent=TYPES[p.type].n;
+    }else if(show){
+      g._rect.setAttribute('fill','#2e6da4');g._rect.setAttribute('stroke','#1b3f5c');
+      g._tx.setAttribute('fill','#fff');g._tx.textContent=TYPES[p.type].n;
+    }else{
+      g._rect.setAttribute('fill','#3b7dbd');g._rect.setAttribute('stroke','#21618c');
+      g._tx.setAttribute('fill','#d6eaf8');g._tx.textContent='★';
+    }
+    g._rect.setAttribute('stroke-width',(sel&&sel.id===p.id)?3.5:1.5);
+    if(sel&&sel.id===p.id)g._rect.setAttribute('stroke','#ffd166');
+  });
+  pieceEls.forEach((g,id)=>{
+    if(!aliveIds.has(id)){
+      g.style.opacity=0;
+      setTimeout(()=>{g.remove();pieceEls.delete(id);},420);
+    }
+  });
+}
+function renderHi(){
+  gHi.innerHTML='';
+  if(lastMove){
+    [lastMove.from,lastMove.to].forEach(k=>{
+      const[r,c]=k.split(',').map(Number);
+      el('rect',{x:X(c)-30,y:Y(r)-18,width:60,height:36,rx:6,fill:'none',stroke:'#f1c40f','stroke-width':2,'stroke-dasharray':'5 4'},gHi);
     });
-    if(maxi){
-      let mx=-1e9;
-      for(const m of moves){
-        const snap=this._clone();
-        this.doMove(m.fr,m.fc,m.tr,m.tc);
-        const sc=this._mm(d-1,false,a,b);
-        this._restore(snap);
-        mx=Math.max(mx,sc);a=Math.max(a,sc);
-        if(b<=a)break;
+  }
+  if(legal)legal.forEach(mv=>{
+    if(mv.cap)el('circle',{cx:X(mv.c),cy:Y(mv.r),r:27,fill:'none',stroke:'#e74c3c','stroke-width':3},gHi);
+    else el('circle',{cx:X(mv.c),cy:Y(mv.r),r:9,fill:'rgba(46,204,113,.85)'},gHi);
+  });
+}
+function setStatus(t){document.getElementById('status').textContent=t;}
+function renderLog(){document.getElementById('log').innerHTML=logs.map(l=>'<div>'+l+'</div>').join('');}
+function renderCaps(){
+  document.getElementById('capTop').innerHTML=deadTop.map(p=>`<span class="cap top">${TYPES[p.type].n}</span>`).join('')||'<span style="color:#5d6d7e">暂无</span>';
+  document.getElementById('capBottom').innerHTML=deadBottom.map(p=>`<span class="cap bottom">${TYPES[p.type].n}</span>`).join('')||'<span style="color:#5d6d7e">暂无</span>';
+}
+function renderAll(){renderPieces();renderHi();renderLog();renderCaps();}
+
+/* ================= 交互 ================= */
+function svgPoint(ev){const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());}
+svg.addEventListener('click',ev=>{
+  const pt=svgPoint(ev);let best=null,bd=40;
+  for(let r=0;r<=12;r++){if(r===6)continue;
+    for(let c=0;c<5;c++){const d=Math.hypot(pt.x-X(c),pt.y-Y(r));if(d<bd){bd=d;best=[r,c];}}}
+  if(best)nodeClick(best[0],best[1]);
+  else{sel=null;legal=null;renderAll();}
+});
+function nodeClick(r,c){
+  const k=K(r,c),t=boardMap.get(k);
+  if(phase==='setup'){
+    if(t&&t.side==='bottom'){
+      if(!sel){sel=t;legal=null;SFX.play('select');}
+      else if(sel.id===t.id){sel=null;}
+      else{
+        const a=sel,b=t;
+        if(canPlaceAt(a.type,b.r,b.c,'bottom')&&canPlaceAt(b.type,a.r,a.c,'bottom')){
+          const tr=a.r,tc=a.c;a.r=b.r;a.c=b.c;b.r=tr;b.c=tc;rebuild();sel=null;SFX.play('move');
+        }else{SFX.play('bad');toast('交换不合法（军旗限大本营 / 地雷限后两排 / 炸弹禁第一排）');sel=null;}
       }
-      return mx;
-    }else{
-      let mn=1e9;
-      for(const m of moves){
-        const snap=this._clone();
-        this.doMove(m.fr,m.fc,m.tr,m.tc);
-        const sc=this._mm(d-1,true,a,b);
-        this._restore(snap);
-        mn=Math.min(mn,sc);b=Math.min(b,sc);
-        if(b<=a)break;
-      }
-      return mn;
-    }
+      renderAll();
+    }else{sel=null;renderAll();}
+    return;
   }
-
-  _restore(s){
-    this.b=s.b;this.rev=s.rev;this.over=s.over;
-    this.winner=s.winner;this.deadTop=s.deadTop;this.deadBot=s.deadBot;
+  if(phase!=='play'||turn!=='bottom')return;
+  if(t&&t.side==='bottom'){sel=t;legal=legalMoves(t);SFX.play('select');renderAll();return;}
+  if(sel&&legal&&legal.has(k)){
+    const p=sel,mv=legal.get(k);sel=null;legal=null;
+    doMove(p,mv);afterMove();return;
   }
+  sel=null;legal=null;renderAll();
 }
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity=1;
+  clearTimeout(t._tm);t._tm=setTimeout(()=>t.style.opacity=0,2200);}
+function hideModal(){document.getElementById('modalBg').style.display='none';}
 
-// ============================
-// UI & GAME FLOW
-// ============================
-let G=null,sel=null,vMoves=[],pTurn=true,busy=false;
-const DIFF_NAMES={1:'新兵',2:'老兵',3:'将军'};
+document.getElementById('btnNew').onclick=()=>{newGame();};
+document.getElementById('btnRandom').onclick=()=>{
+  if(phase!=='setup')return;
+  const lay=randomLayout('bottom');
+  pieces.forEach(p=>{if(p.side==='bottom')p.type=lay[K(p.r,p.c)];});
+  sel=null;renderAll();SFX.play('move');toast('已随机布阵，可继续点击交换微调');
+};
+document.getElementById('btnDefault').onclick=()=>{
+  if(phase!=='setup')return;
+  const lay=defaultLayoutBottom();
+  pieces.forEach(p=>{if(p.side==='bottom')p.type=lay[K(p.r,p.c)];});
+  sel=null;renderAll();SFX.play('move');toast('已恢复推荐阵型');
+};
+document.getElementById('btnStart').onclick=()=>{
+  if(phase!=='setup')return;
+  phase='play';turn='bottom';sel=null;legal=null;
+  if(!sideHasMove('bottom')){endGame('top','你无棋可走');return;}
+  SFX.play('start');setStatus('你的回合');renderAll();
+};
+document.getElementById('btnResign').onclick=()=>{if(phase==='play')endGame('top','你认输');};
+document.getElementById('diff').onchange=e=>{difficulty=e.target.value;toast('AI难度已切换，下一手生效');};
+document.getElementById('btnSnd').onclick=e=>{SFX.on=!SFX.on;
+  e.target.textContent=SFX.on?'🔊 音效':'🔇 静音';if(SFX.on)SFX.play('select');};
+document.getElementById('mBtn').onclick=()=>{newGame();};
 
-function startGame(diff){
-  document.getElementById('start').style.display='none';
-  document.getElementById('game').style.display='block';
-  G=new Game(diff);
-  document.getElementById('dtag').textContent='难度: '+DIFF_NAMES[diff];
-  sel=null;vMoves=[];pTurn=true;busy=false;
-  render();
-  addLog('游戏开始！你是蓝方，AI是红方。','mv');
-  addLog('点击己方棋子选中，再点击目标位置。','mv');
-}
-
-function render(){
-  const board=document.getElementById('board');
-  board.innerHTML='';
-  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
-    const cell=document.createElement('div');
-    cell.className='cell';
-    cell.dataset.r=r;cell.dataset.c=c;
-    if(isCamp(r,c))cell.classList.add('camp');
-    if(isHQ(r,c))cell.classList.add('hq');
-    // highlight
-    const k=posKey(r,c);
-    if(vMoves.some(([mr,mc])=>mr===r&&mc===c)){
-      const t=G.b[r][c];
-      cell.classList.add(t?'atk':'hl');
-    }
-    // piece
-    const p=G.b[r][c];
-    if(p){
-      const el=document.createElement('div');
-      const hidden=p.side==='top'&&!G.rev.has(posKey(r,c));
-      el.className='pc '+(p.side==='bot'?'blue':'red')+(hidden?' hidden-pc':'');
-      if(sel&&sel[0]===r&&sel[1]===c)el.classList.add('fight');
-      el.textContent=hidden?'?':p.name;
-      if(!hidden&&p.rank>0){
-        const rk=document.createElement('span');
-        rk.className='pc-rank';rk.textContent=p.rank;
-        el.appendChild(rk);
-      }
-      cell.appendChild(el);
-      if(sel&&sel[0]===r&&sel[1]===c){
-        const ring=document.createElement('div');
-        ring.className='sel-ring';cell.appendChild(ring);
-      }
-    }
-    cell.addEventListener('click',()=>onClick(r,c));
-    board.appendChild(cell);
-  }
-  updateDead();
-}
-
-function updateDead(){
-  const ad=document.getElementById('aiDead');
-  const pd=document.getElementById('plDead');
-  ad.innerHTML='';pd.innerHTML='';
-  for(const p of G.deadTop){
-    const d=document.createElement('div');d.className='dead-p red';
-    d.textContent=p.name;ad.appendChild(d);
-  }
-  for(const p of G.deadBot){
-    const d=document.createElement('div');d.className='dead-p blue';
-    d.textContent=p.name;pd.appendChild(d);
-  }
-}
-
-function onClick(r,c){
-  if(busy||G.over||!pTurn)return;
-  const p=G.b[r][c];
-  // if selecting own piece
-  if(p&&p.side==='bot'&&p.mov){
-    if(sel&&sel[0]===r&&sel[1]===c){sel=null;vMoves=[]}
-    else{sel=[r,c];vMoves=G.validMoves(r,c)}
-    render();return;
-  }
-  // if selecting own non-movable
-  if(p&&p.side==='bot'){sel=null;vMoves=[];render();return}
-  // if clicking valid move
-  if(sel&&vMoves.some(([mr,mc])=>mr===r&&mc===c)){
-    doPlayerMove(r,c);return;
-  }
-  // deselect
-  sel=null;vMoves=[];render();
-}
-
-function doPlayerMove(tr,tc){
-  const[fr,fc]=sel;
-  const res=G.doMove(fr,fc,tr,tc);
-  sel=null;vMoves=[];
-  render();
-  logResult(res,'bot');
-  if(G.over){showEnd();return}
-  pTurn=false;busy=true;
-  updateTurn();
-  setTimeout(doAITurn,500+Math.random()*300);
-}
-
-function doAITurn(){
-  const mv=G.aiMove();
-  if(!mv){G.over=true;G.winner='bot';showEnd();return}
-  const res=G.doMove(mv.fr,mv.fc,mv.tr,mv.tc);
-  render();
-  logResult(res,'top');
-  if(G.over){showEnd();return}
-  pTurn=true;busy=false;
-  updateTurn();
-}
-
-function updateTurn(){
-  const dot=document.getElementById('tdot');
-  const txt=document.getElementById('ttext');
-  if(pTurn){
-    dot.style.background='var(--blue)';
-    dot.style.boxShadow='0 0 8px var(--blue)';
-    txt.textContent='你的回合';
-  }else{
-    dot.style.background='var(--red)';
-    dot.style.boxShadow='0 0 8px var(--red)';
-    txt.textContent='AI思考中…';
-  }
-}
-
-function logResult(res,side){
-  if(res.type==='mv'){
-    const nm=res.p.side==='bot'?res.p.name:'一枚棋子';
-    addLog(`${res.p.side==='bot'?'你移动了':'AI移动了'}<b class="mv">${nm}</b>`,'mv');
-  }else{
-    const aName=res.atk.side==='bot'?res.atk.name:'AI棋子';
-    const dName=res.def.side==='bot'?res.def.name:(res.def.side==='top'&&G.rev.has(posKey(res.tr,res.tc))?res.def.name:'AI棋子');
-    let msg='',cls='';
-    if(res.winner==='atk'){
-      msg=`${aName} 攻击 ${dName} — ${res.atk.side==='bot'?'<span class="win">胜利！</span>':'<span class="lose">我方损失</span>'}`;
-    }else if(res.winner==='def'){
-      msg=`${aName} 攻击 ${dName} — ${res.atk.side==='bot'?'<span class="lose">失败！</span>':'<span class="win">我方胜利</span>'}`;
-    }else{
-      msg=`${aName} 攻击 ${dName} — <span class="draw">同归于尽</span>`;
-    }
-    addLog(msg,'');
-  }
-}
-
-function addLog(msg){
-  const log=document.getElementById('log');
-  const d=document.createElement('div');d.className='log-e';
-  d.innerHTML=msg;log.insertBefore(d,log.firstChild);
-  if(log.children.length>50)log.removeChild(log.lastChild);
-}
-
-function showEnd(){
-  busy=true;
-  const ov=document.getElementById('goOver');
-  const icon=document.getElementById('goIcon');
-  const title=document.getElementById('goTitle');
-  const detail=document.getElementById('goDetail');
-  ov.style.display='flex';
-  if(G.winner==='bot'){
-    icon.textContent='🏆';title.textContent='恭喜获胜！';
-    title.style.color='var(--gold)';
-    detail.textContent=`你以${DIFF_NAMES[G.diff]}难度击败了AI指挥官！`;
-  }else{
-    icon.textContent='💀';title.textContent='战斗失败';
-    title.style.color='var(--red-l)';
-    detail.textContent='AI指挥官夺走了你的军旗，再接再厉！';
-  }
-}
-
-function toggleRules(){
-  const r=document.getElementById('rules');
-  r.style.display=r.style.display==='none'?'block':'none';
-}
+/* ================= 启动 ================= */
+buildBoard();
+newGame();
 </script>
 </body>
 </html>
