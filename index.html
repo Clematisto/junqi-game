@@ -24,8 +24,9 @@ svg{width:100%;height:auto;display:block;user-select:none;-webkit-tap-highlight-
 #log{max-height:200px;overflow-y:auto;font-size:12px;line-height:1.7;color:#c9d6e3}
 #log div{border-bottom:1px dashed #37455a;padding:1px 0}
 .caps{display:flex;flex-wrap:wrap;gap:4px;min-height:26px}
-.cap{background:#3b4d66;border-radius:4px;padding:2px 6px;font-size:12px}
-.cap.top{background:#2e5f8a}.cap.bottom{background:#8a3b3b}
+.cap{border-radius:4px;padding:2px 6px;font-size:12px;color:#fff}
+.cap.top{background:#1f618d}
+.cap.bottom{background:#2e8b57}
 details{font-size:12.5px;line-height:1.8;color:#aab8c8}
 summary{cursor:pointer;color:#ffd166;font-size:13px;margin-bottom:4px}
 #toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:#c0392b;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:60}
@@ -39,7 +40,7 @@ footer{font-size:11px;color:#6b7a8d;padding:8px;text-align:center}
 </head>
 <body>
 <header>
-  <h1>♟️ 双人军棋 · 人机对弈</h1>
+  <h1>双人军棋 · 人机对弈</h1>
   <div class="ctrl">
     <label>AI难度：
       <select id="diff">
@@ -49,11 +50,11 @@ footer{font-size:11px;color:#6b7a8d;padding:8px;text-align:center}
       </select>
     </label>
     <button id="btnNew" class="primary">新对局</button>
-    <button id="btnRandom">🎲 随机布阵</button>
-    <button id="btnDefault">⭐ 推荐阵型</button>
-    <button id="btnStart" class="primary">▶ 开始对局</button>
+    <button id="btnRandom">随机布阵</button>
+    <button id="btnDefault" title="每点一次，随机切换一套推荐阵型">推荐阵型</button>
+    <button id="btnStart" class="primary">开始对局</button>
     <button id="btnResign">认输</button>
-    <button id="btnSnd">🔊 音效</button>
+    <button id="btnSnd">音效</button>
   </div>
 </header>
 <main>
@@ -65,13 +66,13 @@ footer{font-size:11px;color:#6b7a8d;padding:8px;text-align:center}
     <div class="card"><h3>AI 吃掉你的棋子</h3><div class="caps" id="capBottom"></div></div>
     <div class="card">
       <details>
-        <summary>📋 规则速查（铁路已修正）</summary>
+        <summary>规则速查（铁路已修正）</summary>
         <b>铁路（粗线）</b>：棋子可沿直线不限格滑行、途中不可拐弯；两侧纵向铁路经山界三条通道全程贯通，<b>可从己方后排铁路一步直达对方后排铁路（如 A12→A2）</b>；<b>大本营所在的最内一排（第1排/第13排）没有铁路</b>；工兵可在铁路网内任意拐弯。<br>
         吃子：司令＞军长＞师长＞旅长＞团长＞营长＞连长＞排长＞工兵；同级同归于尽；炸弹碰任何子同归；工兵可挖地雷，其余子碰雷阵亡；军旗、地雷不可移动。<br>
         公路（细线）每次一格；行营（虚线圆圈）内不可被攻击；棋子进入大本营后不可再移动。<br>
         布阵限制：军旗必须在大本营；地雷只能在后两排；炸弹不能在第一排。<br>
         胜负：吃掉对方军旗、或令对方无棋可走即胜。<br>
-        操作：布阵阶段点击己方两枚棋子交换位置；对局阶段点选己方棋子，点绿点移动、点红圈吃子。
+        操作：布阵阶段点击己方两枚棋子交换位置，点「推荐阵型」按钮每次随机切换一套内置阵型（共20套），完成后点「开始对局」；对局阶段点选己方棋子，点绿点移动、点红圈吃子。敌方未翻面棋子以 ★ 显示。
       </details>
     </div>
   </div>
@@ -138,10 +139,171 @@ const HQ=new Set(['0,1','0,3','12,1','12,3']);
 const nt=k=>{const[r,c]=k.split(',').map(Number);return 'ABCDE'[c]+(r+1);};
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-/* ================= 棋盘拓扑（铁路已修正） =================
-   横向铁路：第2、6、8、12排（0索引 1/5/7/11）
-   纵向铁路：A、E两列，从第2排到第12排，经山界贯通（不触及大本营一排）
-   山界三条铁路通道：A、C、E列 第6排↔第8排 直连        */
+/* ================= 推荐阵型库（20套，均已按布阵规则人工校验） ================= */
+const FORMATIONS=[
+{name:'攻守平衡',lay:{
+ '12,0':'pai','12,1':'flag','12,2':'mine','12,3':'bomb','12,4':'mine',
+ '11,0':'lian','11,1':'mine','11,2':'gong','11,3':'jun','11,4':'tuan',
+ '10,0':'ying','10,2':'siling','10,4':'shi',
+ '9,0':'tuan','9,1':'lian','9,3':'bomb','9,4':'lvz',
+ '8,0':'gong','8,2':'ying','8,4':'gong',
+ '7,0':'shi','7,1':'lvz','7,2':'pai','7,3':'pai','7,4':'lian'}},
+{name:'右旗连环雷',lay:{
+ '12,0':'mine','12,1':'bomb','12,2':'jun','12,3':'flag','12,4':'mine',
+ '11,0':'pai','11,1':'mine','11,2':'gong','11,3':'lian','11,4':'tuan',
+ '10,0':'ying','10,2':'siling','10,4':'lvz',
+ '9,0':'lian','9,1':'tuan','9,3':'bomb','9,4':'shi',
+ '8,0':'gong','8,2':'ying','8,4':'gong',
+ '7,0':'shi','7,1':'lvz','7,2':'pai','7,3':'pai','7,4':'lian'}},
+{name:'铁桶死守',lay:{
+ '12,0':'mine','12,1':'flag','12,2':'siling','12,3':'mine','12,4':'bomb',
+ '11,0':'shi','11,1':'gong','11,2':'jun','11,3':'mine','11,4':'shi',
+ '10,0':'lvz','10,2':'tuan','10,4':'ying',
+ '9,0':'lian','9,1':'bomb','9,3':'pai','9,4':'lian',
+ '8,0':'gong','8,2':'tuan','8,4':'gong',
+ '7,0':'lvz','7,1':'ying','7,2':'pai','7,3':'pai','7,4':'lian'}},
+{name:'两翼快攻',lay:{
+ '12,0':'bomb','12,1':'flag','12,2':'gong','12,3':'mine','12,4':'mine',
+ '11,0':'tuan','11,1':'jun','11,2':'mine','11,3':'lian','11,4':'shi',
+ '10,0':'siling','10,2':'ying','10,4':'gong',
+ '9,0':'pai','9,1':'lian','9,3':'bomb','9,4':'tuan',
+ '8,0':'gong','8,2':'lvz','8,4':'ying',
+ '7,0':'shi','7,1':'pai','7,2':'pai','7,3':'lian','7,4':'lvz'}},
+{name:'中路强突',lay:{
+ '12,0':'mine','12,1':'flag','12,2':'bomb','12,3':'jun','12,4':'mine',
+ '11,0':'lian','11,1':'shi','11,2':'gong','11,3':'mine','11,4':'lian',
+ '10,0':'tuan','10,2':'siling','10,4':'tuan',
+ '9,0':'pai','9,1':'ying','9,3':'gong','9,4':'lvz',
+ '8,0':'gong','8,2':'lvz','8,4':'ying',
+ '7,0':'shi','7,1':'lian','7,2':'bomb','7,3':'pai','7,4':'pai'}},
+{name:'工兵游猎',lay:{
+ '12,0':'gong','12,1':'flag','12,2':'mine','12,3':'mine','12,4':'gong',
+ '11,0':'bomb','11,1':'siling','11,2':'gong','11,3':'jun','11,4':'mine',
+ '10,0':'shi','10,2':'ying','10,4':'lian',
+ '9,0':'tuan','9,1':'lian','9,3':'lvz','9,4':'lian',
+ '8,0':'bomb','8,2':'tuan','8,4':'shi',
+ '7,0':'lvz','7,1':'pai','7,2':'pai','7,3':'pai','7,4':'ying'}},
+{name:'全线压迫',lay:{
+ '12,0':'mine','12,1':'flag','12,2':'lian','12,3':'mine','12,4':'bomb',
+ '11,0':'jun','11,1':'mine','11,2':'tuan','11,3':'gong','11,4':'lian',
+ '10,0':'ying','10,2':'siling','10,4':'ying',
+ '9,0':'gong','9,1':'pai','9,3':'gong','9,4':'shi',
+ '8,0':'pai','8,2':'tuan','8,4':'pai',
+ '7,0':'lvz','7,1':'bomb','7,2':'lvz','7,3':'shi','7,4':'lian'}},
+{name:'双雷锁门',lay:{
+ '12,0':'mine','12,1':'flag','12,2':'mine','12,3':'gong','12,4':'bomb',
+ '11,0':'mine','11,1':'jun','11,2':'gong','11,3':'lian','11,4':'shi',
+ '10,0':'siling','10,2':'tuan','10,4':'lvz',
+ '9,0':'lian','9,1':'bomb','9,3':'gong','9,4':'ying',
+ '8,0':'shi','8,2':'ying','8,4':'tuan',
+ '7,0':'lvz','7,1':'pai','7,2':'pai','7,3':'pai','7,4':'lian'}},
+{name:'边旗奇阵',lay:{
+ '12,0':'bomb','12,1':'gong','12,2':'jun','12,3':'flag','12,4':'mine',
+ '11,0':'mine','11,1':'lian','11,2':'siling','11,3':'gong','11,4':'mine',
+ '10,0':'lvz','10,2':'ying','10,4':'shi',
+ '9,0':'tuan','9,1':'pai','9,3':'bomb','9,4':'tuan',
+ '8,0':'gong','8,2':'shi','8,4':'lvz',
+ '7,0':'lian','7,1':'lian','7,2':'pai','7,3':'pai','7,4':'ying'}},
+{name:'雷后藏旗',lay:{
+ '12,0':'mine','12,1':'flag','12,2':'pai','12,3':'bomb','12,4':'mine',
+ '11,0':'mine','11,1':'gong','11,2':'shi','11,3':'lvz','11,4':'lian',
+ '10,0':'jun','10,2':'tuan','10,4':'ying',
+ '9,0':'lian','9,1':'shi','9,3':'gong','9,4':'bomb',
+ '8,0':'gong','8,2':'siling','8,4':'lvz',
+ '7,0':'ying','7,1':'lian','7,2':'pai','7,3':'pai','7,4':'tuan'}},
+{name:'三线布防',lay:{
+ '12,0':'gong','12,1':'flag','12,2':'mine','12,3':'jun','12,4':'mine',
+ '11,0':'shi','11,1':'mine','11,2':'bomb','11,3':'lian','11,4':'lvz',
+ '10,0':'tuan','10,2':'siling','10,4':'gong',
+ '9,0':'ying','9,1':'pai','9,3':'bomb','9,4':'ying',
+ '8,0':'gong','8,2':'tuan','8,4':'shi',
+ '7,0':'lian','7,1':'lvz','7,2':'pai','7,3':'pai','7,4':'lian'}},
+{name:'重装右翼',lay:{
+ '12,0':'mine','12,1':'bomb','12,2':'mine','12,3':'flag','12,4':'shi',
+ '11,0':'lvz','11,1':'mine','11,2':'lian','11,3':'jun','11,4':'tuan',
+ '10,0':'gong','10,2':'siling','10,4':'gong',
+ '9,0':'lian','9,1':'pai','9,3':'bomb','9,4':'ying',
+ '8,0':'shi','8,2':'lvz','8,4':'tuan',
+ '7,0':'pai','7,1':'pai','7,2':'ying','7,3':'lian','7,4':'gong'}},
+{name:'中路铁三角',lay:{
+ '12,0':'lian','12,1':'flag','12,2':'mine','12,3':'lvz','12,4':'mine',
+ '11,0':'gong','11,1':'shi','11,2':'mine','11,3':'gong','11,4':'jun',
+ '10,0':'tuan','10,2':'siling','10,4':'tuan',
+ '9,0':'bomb','9,1':'lian','9,3':'shi','9,4':'ying',
+ '8,0':'bomb','8,2':'lvz','8,4':'gong',
+ '7,0':'ying','7,1':'pai','7,2':'lian','7,3':'pai','7,4':'pai'}},
+{name:'底线奇袭',lay:{
+ '12,0':'mine','12,1':'flag','12,2':'shi','12,3':'mine','12,4':'siling',
+ '11,0':'bomb','11,1':'gong','11,2':'mine','11,3':'jun','11,4':'lian',
+ '10,0':'ying','10,2':'tuan','10,4':'lvz',
+ '9,0':'gong','9,1':'pai','9,3':'bomb','9,4':'gong',
+ '8,0':'lian','8,2':'shi','8,4':'lvz',
+ '7,0':'lian','7,1':'pai','7,2':'pai','7,3':'ying','7,4':'tuan'}},
+{name:'挖雷先遣',lay:{
+ '12,0':'gong','12,1':'flag','12,2':'gong','12,3':'mine','12,4':'mine',
+ '11,0':'mine','11,1':'bomb','11,2':'shi','11,3':'lvz','11,4':'tuan',
+ '10,0':'jun','10,2':'ying','10,4':'gong',
+ '9,0':'lian','9,1':'shi','9,3':'bomb','9,4':'lian',
+ '8,0':'siling','8,2':'lvz','8,4':'tuan',
+ '7,0':'pai','7,1':'lian','7,2':'ying','7,3':'pai','7,4':'pai'}},
+{name:'军长坐镇',lay:{
+ '12,0':'pai','12,1':'flag','12,2':'mine','12,3':'jun','12,4':'mine',
+ '11,0':'mine','11,1':'gong','11,2':'bomb','11,3':'lvz','11,4':'shi',
+ '10,0':'ying','10,2':'siling','10,4':'lian',
+ '9,0':'tuan','9,1':'gong','9,3':'shi','9,4':'tuan',
+ '8,0':'gong','8,2':'lian','8,4':'ying',
+ '7,0':'lvz','7,1':'pai','7,2':'bomb','7,3':'pai','7,4':'lian'}},
+{name:'九宫格死守',lay:{
+ '12,0':'shi','12,1':'flag','12,2':'mine','12,3':'lvz','12,4':'mine',
+ '11,0':'siling','11,1':'mine','11,2':'jun','11,3':'bomb','11,4':'shi',
+ '10,0':'gong','10,2':'tuan','10,4':'gong',
+ '9,0':'ying','9,1':'lvz','9,3':'ying','9,4':'tuan',
+ '8,0':'gong','8,2':'bomb','8,4':'lian',
+ '7,0':'lian','7,1':'pai','7,2':'pai','7,3':'pai','7,4':'lian'}},
+{name:'双炸护旗',lay:{
+ '12,0':'lvz','12,1':'flag','12,2':'mine','12,3':'bomb','12,4':'mine',
+ '11,0':'jun','11,1':'mine','11,2':'gong','11,3':'lian','11,4':'bomb',
+ '10,0':'shi','10,2':'tuan','10,4':'siling',
+ '9,0':'gong','9,1':'lvz','9,3':'shi','9,4':'pai',
+ '8,0':'ying','8,2':'tuan','8,4':'ying',
+ '7,0':'lian','7,1':'lian','7,2':'gong','7,3':'pai','7,4':'pai'}},
+{name:'左岸坚壁',lay:{
+ '12,0':'mine','12,1':'flag','12,2':'lvz','12,3':'mine','12,4':'bomb',
+ '11,0':'gong','11,1':'shi','11,2':'mine','11,3':'siling','11,4':'gong',
+ '10,0':'jun','10,2':'ying','10,4':'shi',
+ '9,0':'tuan','9,1':'lian','9,3':'ying','9,4':'tuan',
+ '8,0':'pai','8,2':'bomb','8,4':'lian',
+ '7,0':'lvz','7,1':'pai','7,2':'pai','7,3':'gong','7,4':'lian'}},
+{name:'右路奔袭',lay:{
+ '12,0':'mine','12,1':'jun','12,2':'gong','12,3':'flag','12,4':'mine',
+ '11,0':'mine','11,1':'lian','11,2':'siling','11,3':'gong','11,4':'shi',
+ '10,0':'bomb','10,2':'tuan','10,4':'pai',
+ '9,0':'lvz','9,1':'ying','9,3':'shi','9,4':'lian',
+ '8,0':'bomb','8,2':'lvz','8,4':'ying',
+ '7,0':'tuan','7,1':'pai','7,2':'lian','7,3':'pai','7,4':'gong'}}
+];
+/* 启动时自动校验阵型合法性（保险机制），只保留合规阵型 */
+function checkLayout(lay){
+  const cnt={};let total=0;
+  for(const[k,t]of Object.entries(lay)){
+    const[r,c]=k.split(',').map(Number);
+    if(r<7||r>12||CAMP.has(k))return false;
+    if(t==='flag'&&!(k==='12,1'||k==='12,3'))return false;
+    if(t==='mine'&&r<11)return false;
+    if(t==='bomb'&&r===7)return false;
+    cnt[t]=(cnt[t]||0)+1;total++;
+  }
+  if(total!==25)return false;
+  return Object.keys(TYPES).every(t=>(cnt[t]||0)===TYPES[t].cnt);
+}
+const POOL=(()=>{const ok=FORMATIONS.filter(f=>checkLayout(f.lay));return ok.length?ok:FORMATIONS;})();
+let lastRecIdx=-1;
+function pickOtherIdx(){
+  let i;do{i=Math.floor(Math.random()*POOL.length);}while(POOL.length>1&&i===lastRecIdx);
+  return i;
+}
+
+/* ================= 棋盘拓扑（铁路已修正） ================= */
 const adj=new Map();
 function pushAdj(r,c,r2,c2,t){
   const k=K(r,c);let a=adj.get(k);if(!a){a=[];adj.set(k,a);}
@@ -155,13 +317,13 @@ const H_RAIL=new Set([1,5,7,11]);
   for(let r=r0;r<=r1;r++)for(let c=0;c<5;c++){
     if(c<4)addEdge(r,c,r,c+1,H_RAIL.has(r)?'rail':'road');
     if(r<r1){
-      const rail=(c===0||c===4)&&r>=1&&r<=10;   // 两侧纵向铁路，止于第2/12排，不进大本营排
+      const rail=(c===0||c===4)&&r>=1&&r<=10;
       addEdge(r,c,r+1,c,rail?'rail':'road');
     }
   }
 });
-[0,2,4].forEach(c=>addEdge(5,c,7,c,'rail'));    // 山界三条铁路通道（跨行直连）
-CAMP.forEach(k=>{                               // 行营八方斜线（公路）
+[0,2,4].forEach(c=>addEdge(5,c,7,c,'rail'));
+CAMP.forEach(k=>{
   const[r,c]=k.split(',').map(Number);
   [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>{
     const r2=r+dr,c2=c+dc;
@@ -170,13 +332,7 @@ CAMP.forEach(k=>{                               // 行营八方斜线（公路�
 });
 
 /* ================= 布阵 ================= */
-function defaultLayoutBottom(){return{
- '12,0':'pai','12,1':'flag','12,2':'mine','12,3':'bomb','12,4':'mine',
- '11,0':'lian','11,1':'mine','11,2':'gong','11,3':'jun','11,4':'tuan',
- '10,0':'ying','10,2':'siling','10,4':'shi',
- '9,0':'tuan','9,1':'lian','9,3':'bomb','9,4':'lvz',
- '8,0':'gong','8,2':'ying','8,4':'gong',
- '7,0':'shi','7,1':'lvz','7,2':'pai','7,3':'pai','7,4':'lian'};}
+function defaultLayoutBottom(){return FORMATIONS[0].lay;}
 function mirror(l){const m={};Object.entries(l).forEach(([k,t])=>{const[r,c]=k.split(',').map(Number);m[K(12-r,c)]=t;});return m;}
 function randomLayout(side){
   const back=side==='top'?[0,1]:[11,12],front=side==='top'?5:7;
@@ -214,17 +370,19 @@ function newGame(){
   pieces=[];let id=0;
   Object.entries(defaultLayoutBottom()).forEach(([k,t])=>{const[r,c]=k.split(',').map(Number);
     pieces.push({id:id++,side:'bottom',type:t,r,c,alive:true,revealed:true});});
-  const ai=Math.random()<.35?mirror(defaultLayoutBottom()):randomLayout('top');
+  const base=POOL[Math.floor(Math.random()*POOL.length)].lay;
+  const ai=Math.random()<.35?mirror(base):randomLayout('top');
   Object.entries(ai).forEach(([k,t])=>{const[r,c]=k.split(',').map(Number);
     pieces.push({id:id++,side:'top',type:t,r,c,alive:true,revealed:false});});
   pieceEls.forEach(g=>g.remove());pieceEls.clear();
   rebuild();phase='setup';turn='bottom';sel=null;legal=null;moveNo=0;logs=[];
   deadTop=[];deadBottom=[];lastMove=null;aiKnowsPlayerFlag=null;playerKnowsAiFlag=null;
-  hideModal();renderAll();setStatus('布阵中：点击两枚己方棋子可交换位置，完成后点「开始对局」');
+  lastRecIdx=-1;
+  hideModal();renderAll();setStatus('布阵中：点击两枚己方棋子交换位置，或点「推荐阵型」换套阵，完成后点「开始对局」');
 }
 
-/* ================= 走法生成（滑行已支持跨山界直连） ================= */
-function railStep(r,c,dr,dc){                    // 找同方向共线的下一段铁路（含跨行直连边）
+/* ================= 走法生成 ================= */
+function railStep(r,c,dr,dc){
   let found=null;
   (adj.get(K(r,c))||[]).forEach(e=>{
     if(e.type!=='rail')return;
@@ -240,7 +398,7 @@ function legalMoves(p,bm){
     if(t){if(t.side!==p.side&&!CAMP.has(k))res.set(k,{r,c,cap:t});}
     else res.set(k,{r,c,cap:null});};
   (adj.get(K(p.r,p.c))||[]).forEach(e=>push(e.r,e.c));
-  if(p.type==='gong'){                           // 工兵：铁路网内任意拐弯
+  if(p.type==='gong'){
     const vis=new Set([K(p.r,p.c)]),q=[[p.r,p.c]];
     while(q.length){const[r,c]=q.shift();
       for(const e of(adj.get(K(r,c))||[])){
@@ -249,7 +407,7 @@ function legalMoves(p,bm){
         const t=bm.get(k);
         if(t){if(t.side!==p.side&&!CAMP.has(k))res.set(k,{r:e.r,c:e.c,cap:t});continue;}
         res.set(k,{r:e.r,c:e.c,cap:null});q.push([e.r,e.c]);}}
-  }else{                                         // 其余棋子：铁路直线滑行（可跨山界直达对方腹地）
+  }else{
     [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
       let r=p.r,c=p.c;
       while(true){
@@ -299,7 +457,7 @@ function doMove(p,mv){
     if(res.b){d.alive=false;(d.side==='top'?deadTop:deadBottom).push(d);}
     if(d.side==='top'&&HQ.has(from)&&!d.alive){
       playerKnowsAiFlag=otherHQKey('top',from);
-      logs.unshift('💡 推理：AI 军旗必在 '+nt(playerKnowsAiFlag));}
+      logs.unshift('推理：AI 军旗必在 '+nt(playerKnowsAiFlag));}
     if(d.side==='bottom'&&HQ.has(from)&&!d.alive){
       aiKnowsPlayerFlag=otherHQKey('bottom',from);}
     rebuild();logMove(p,from,mv,res,d);
@@ -315,7 +473,7 @@ function logMove(p,from,mv,res,d){
   const name=TYPES[p.type].n,f=nt(from),t=nt(K(mv.r,mv.c));
   let line;
   if(!res)line=`${moveNo}. ${me} ${name} ${f}→${t}`;
-  else if(res.flag)line=`${moveNo}. ${me} ${name} ${t} 🏆夺取军旗！`;
+  else if(res.flag)line=`${moveNo}. ${me} ${name} ${t} 夺取军旗！`;
   else if(res.a&&res.b)line=`${moveNo}. ${me} ${name} ${f}×${t} 与${foe}的${TYPES[d.type].n}同归于尽`;
   else if(res.a)line=`${moveNo}. ${me} ${name} ${f}×${t} 进攻失利，被${foe}的${TYPES[d.type].n}击杀`;
   else line=`${moveNo}. ${me} ${name} ${f}×${t} 吃掉${foe}的${TYPES[d.type].n}`;
@@ -466,8 +624,8 @@ function sideHasMove(side){return pieces.some(p=>p.alive&&p.side===side&&legalMo
 function endGame(winner,reason){
   phase='over';sel=null;legal=null;renderAll();
   const win=winner==='bottom';
-  setStatus((win?'🎉 你赢了！':'😢 AI 获胜')+'（'+reason+'）');
-  document.getElementById('mTitle').textContent=win?'🎉 胜利':'😢 失败';
+  setStatus((win?'你赢了！':'AI 获胜')+'（'+reason+'）');
+  document.getElementById('mTitle').textContent=win?'胜利':'失败';
   document.getElementById('mTitle').style.color=win?'#7ec8e3':'#e74c3c';
   document.getElementById('mDesc').textContent='胜负原因：'+reason;
   document.getElementById('modalBg').style.display='flex';
@@ -500,6 +658,12 @@ function afterMove(){
 const svg=document.getElementById('board');
 const SVGNS='http://www.w3.org/2000/svg';
 const X=c=>60+c*110,Y=r=>50+r*56;
+/* 敌我配色常量：改这里即可全局调整 */
+const COL_PLAYER='#2e8b57';      // 我方底色：绿
+const COL_PLAYER_DARK='#1e6f45'; // 我方边框：深绿
+const COL_AI='#1f618d';          // 敌方底色：蓝
+const COL_AI_DARK='#154360';     // 敌方边框：深蓝
+const COL_SEL='#ffd166';         // 选中高亮：金
 function el(tag,attrs,parent){const e=document.createElementNS(SVGNS,tag);
   for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
 let gBoard,gHi,gPieces;
@@ -543,7 +707,7 @@ function buildBoard(){
       }
     }}
   const t1=el('text',{x:280,y:14,'text-anchor':'middle','font-size':13,fill:'#5d6d7e','font-weight':'bold'},gBoard);t1.textContent='AI 阵地（蓝）';
-  const t2=el('text',{x:280,y:784,'text-anchor':'middle','font-size':13,fill:'#922b21','font-weight':'bold'},gBoard);t2.textContent='你的阵地（红）';
+  const t2=el('text',{x:280,y:784,'text-anchor':'middle','font-size':13,fill:'#1e6f45','font-weight':'bold'},gBoard);t2.textContent='你的阵地（绿）';
   for(let c=0;c<5;c++){const t=el('text',{x:X(c),y:752,'text-anchor':'middle','font-size':12,fill:'#7f8c8d'},gBoard);t.textContent='ABCDE'[c];}
   for(let r=0;r<=12;r++){if(r===6)continue;
     const t=el('text',{x:26,y:Y(r)+4,'text-anchor':'middle','font-size':10,fill:'#95a5a6'},gBoard);t.textContent=r+1;}
@@ -558,8 +722,12 @@ function renderPieces(){
     const show=p.side==='bottom'||p.revealed;
     if(!g){
       g=el('g',{},gPieces);
+      /* 外层矩形：双线边框外线 */
       g._rect=el('rect',{x:-28,y:-16,width:56,height:32,rx:6},g);
-      g._tx=el('text',{'text-anchor':'middle',y:5,'font-size':14,'font-weight':'bold'},g);
+      /* 内层矩形：双线边框内线（底色透出形成间隙） */
+      g._rect2=el('rect',{x:-25,y:-13,width:50,height:26,rx:4,fill:'none'},g);
+      /* 文字：白色、不加粗 */
+      g._tx=el('text',{'text-anchor':'middle',y:5,'font-size':14},g);
       g.style.transition='none';
       g.style.transform=`translate(${X(p.c)}px,${Y(p.r)}px)`;
       pieceEls.set(p.id,g);
@@ -567,18 +735,29 @@ function renderPieces(){
     }
     g.style.opacity=1;
     g.style.transform=`translate(${X(p.c)}px,${Y(p.r)}px)`;
+    /* 公共样式：白字、不加粗 */
+    g._tx.setAttribute('fill','#ffffff');
+    g._tx.setAttribute('font-weight','normal');
+    const isSel=sel&&sel.id===p.id;
+    let bg,bd,content;
     if(p.side==='bottom'){
-      g._rect.setAttribute('fill','#c0392b');g._rect.setAttribute('stroke','#7b241c');
-      g._tx.setAttribute('fill','#fff');g._tx.textContent=TYPES[p.type].n;
+      /* 我方：绿底 + 深绿双线实线边框 */
+      bg=COL_PLAYER;bd=COL_PLAYER_DARK;content=TYPES[p.type].n;
     }else if(show){
-      g._rect.setAttribute('fill','#2e6da4');g._rect.setAttribute('stroke','#1b3f5c');
-      g._tx.setAttribute('fill','#fff');g._tx.textContent=TYPES[p.type].n;
+      /* 敌方已翻面：蓝底 + 深蓝双线实线边框 */
+      bg=COL_AI;bd=COL_AI_DARK;content=TYPES[p.type].n;
     }else{
-      g._rect.setAttribute('fill','#3b7dbd');g._rect.setAttribute('stroke','#21618c');
-      g._tx.setAttribute('fill','#d6eaf8');g._tx.textContent='★';
+      /* 敌方未翻面：蓝底 + 深蓝双线实线边框 + ★ */
+      bg=COL_AI;bd=COL_AI_DARK;content='★';
     }
-    g._rect.setAttribute('stroke-width',(sel&&sel.id===p.id)?3.5:1.5);
-    if(sel&&sel.id===p.id)g._rect.setAttribute('stroke','#ffd166');
+    g._rect.setAttribute('fill',bg);
+    g._rect.setAttribute('stroke',isSel?COL_SEL:bd);
+    g._rect2.setAttribute('stroke',isSel?COL_SEL:bd);
+    g._rect.setAttribute('stroke-dasharray','none');
+    g._rect2.setAttribute('stroke-dasharray','none');
+    g._rect.setAttribute('stroke-width',isSel?3.5:1.5);
+    g._rect2.setAttribute('stroke-width',isSel?1.5:1);
+    g._tx.textContent=content;
   });
   pieceEls.forEach((g,id)=>{
     if(!aliveIds.has(id)){
@@ -655,9 +834,12 @@ document.getElementById('btnRandom').onclick=()=>{
 };
 document.getElementById('btnDefault').onclick=()=>{
   if(phase!=='setup')return;
-  const lay=defaultLayoutBottom();
+  lastRecIdx=pickOtherIdx();
+  const f=POOL[lastRecIdx];
+  const lay=f.lay;
   pieces.forEach(p=>{if(p.side==='bottom')p.type=lay[K(p.r,p.c)];});
-  sel=null;renderAll();SFX.play('move');toast('已恢复推荐阵型');
+  sel=null;renderAll();SFX.play('move');
+  toast(`已切换到「${f.name}」（第${lastRecIdx+1}/${POOL.length}套），再点一次继续换`);
 };
 document.getElementById('btnStart').onclick=()=>{
   if(phase!=='setup')return;
@@ -668,7 +850,7 @@ document.getElementById('btnStart').onclick=()=>{
 document.getElementById('btnResign').onclick=()=>{if(phase==='play')endGame('top','你认输');};
 document.getElementById('diff').onchange=e=>{difficulty=e.target.value;toast('AI难度已切换，下一手生效');};
 document.getElementById('btnSnd').onclick=e=>{SFX.on=!SFX.on;
-  e.target.textContent=SFX.on?'🔊 音效':'🔇 静音';if(SFX.on)SFX.play('select');};
+  e.target.textContent=SFX.on?'音效':'静音';if(SFX.on)SFX.play('select');};
 document.getElementById('mBtn').onclick=()=>{newGame();};
 
 /* ================= 启动 ================= */
